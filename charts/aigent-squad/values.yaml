@@ -15,6 +15,9 @@ agentsSource:
   repo: ""
   path: "agents"
   ref: "main"
+  # For private repos: name of a K8s Secret with key "token" (GitHub PAT or App token)
+  # Create with: kubectl create secret generic git-token --from-literal=token=ghp_xxx
+  tokenSecret: ""
 
 ## Supervisor process — orchestrates all agents in-process
 supervisor:

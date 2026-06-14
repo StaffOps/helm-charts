@@ -25,12 +25,23 @@ spec:
             - sh
             - -c
             - |
+              {{- if .Values.agentsSource.tokenSecret }}
+              TOKEN=$(cat /git-token/token)
+              REPO=$(echo "{{ .Values.agentsSource.repo }}" | sed "s|https://|https://x-access-token:${TOKEN}@|")
+              {{- else }}
+              REPO="{{ .Values.agentsSource.repo }}"
+              {{- end }}
               git clone --depth=1 --branch={{ .Values.agentsSource.ref }} \
-                {{ .Values.agentsSource.repo }} /agents-repo && \
+                ${REPO} /agents-repo && \
               cp -r /agents-repo/{{ .Values.agentsSource.path }}/* /agents/
           volumeMounts:
             - name: agents-volume
               mountPath: /agents
+            {{- if .Values.agentsSource.tokenSecret }}
+            - name: git-token
+              mountPath: /git-token
+              readOnly: true
+            {{- end }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
       {{- end }}
@@ -96,3 +107,9 @@ spec:
                       path: {{ .name }}/prompt.md
               {{- end }}
           {{- end }}
+        {{- if and (eq .Values.agentsSource.type "git") .Values.agentsSource.tokenSecret }}
+        - name: git-token
+          secret:
+            secretName: {{ .Values.agentsSource.tokenSecret }}
+            defaultMode: 0400
+        {{- end }}

@@ -1,0 +1,27 @@
+{{- if .Values.vmServiceScrape.enabled -}}
+{{/*
+VMServiceScrape for vm-operator. Equivalent to ServiceMonitor but native
+to VictoriaMetrics. Use this on clusters running vm-operator (preferred)
+instead of ServiceMonitor.
+*/}}
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: {{ include "staffops-ad.fullname" . }}
+  labels:
+    {{- include "staffops-ad.labels" . | nindent 4 }}
+    {{- with .Values.vmServiceScrape.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "staffops-ad.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: metrics
+      interval: {{ .Values.vmServiceScrape.interval | default "30s" }}
+      path: /metrics
+{{- end }}

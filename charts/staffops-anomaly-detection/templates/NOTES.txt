@@ -1,0 +1,50 @@
+{{- $name := include "staffops-ad.fullname" . -}}
+🚀 staffops-anomaly-detection {{ .Chart.AppVersion }} installed in namespace {{ .Release.Namespace }}.
+
+Components deployed:
+  • Controller — {{ .Values.controller.replicaCount }} replica(s){{ if and .Values.controller.leaderElection.enabled (gt (int .Values.controller.replicaCount) 1) }} (leader election ON){{ end }}
+  • Workers    — {{ .Values.worker.replicaCount }} replica(s)
+{{- if .Values.ml.enabled }}
+  • ML service — {{ .Values.ml.replicaCount }} replica(s)
+{{- end }}
+{{- if .Values.redis.enabled }}
+  • Redis      — in-cluster (single replica, persistence: {{ .Values.redis.persistence.enabled }})
+{{- else }}
+  • Redis      — external ({{ .Values.redis.external.addr }})
+{{- end }}
+
+{{- if .Values.controller.dryRun }}
+
+⚠️  DRY-RUN MODE is enabled — alerts are LOGGED but NOT dispatched to Alertmanager.
+   Once you've validated detection quality, set `controller.dryRun=false` to go live.
+{{- end }}
+
+Verify the deployment:
+
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "staffops-ad.name" . }}
+
+Watch the controller log to see anomalies as they fire:
+
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=controller -f --tail=50
+
+Probe controller health:
+
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "staffops-ad.controller.fullname" . }} 8080:{{ .Values.controller.service.port }} &
+  curl -s http://localhost:8080/readyz
+  curl -s http://localhost:8080/metrics | grep staffops_ad_
+
+Run the connectivity smoke test:
+
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+{{- if not .Values.vmRule.enabled }}
+
+💡 Want pre-built recording rules and health alerts? Set `vmRule.enabled=true`
+   (requires vm-operator).
+{{- end }}
+{{- if not .Values.grafanaDashboard.enabled }}
+💡 Want the operator Grafana dashboard? Set `grafanaDashboard.enabled=true`
+   (requires Grafana sidecar dashboard discovery).
+{{- end }}
+
+Documentation: https://github.com/karlipegomes/staffops-anomaly-detection/tree/main/docs

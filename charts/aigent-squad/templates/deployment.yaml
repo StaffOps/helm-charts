@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aigent-squad.fullname" . }}
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.supervisor.replicas }}
+  selector:
+    matchLabels:
+      {{- include "aigent-squad.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "aigent-squad.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "aigent-squad.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if eq .Values.agentsSource.type "git" }}
+      initContainers:
+        - name: git-sync
+          image: alpine/git:latest
+          command:
+            - sh
+            - -c
+            - |
+              git clone --depth=1 --branch={{ .Values.agentsSource.ref }} \
+                {{ .Values.agentsSource.repo }} /agents-repo && \
+              cp -r /agents-repo/{{ .Values.agentsSource.path }}/* /agents/
+          volumeMounts:
+            - name: agents-volume
+              mountPath: /agents
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+      {{- end }}
+      containers:
+        - name: supervisor
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.supervisor.port }}
+              name: http
+              protocol: TCP
+          env:
+            - name: AGENTS_DIR
+              value: /app/agents
+            - name: SERVICE_NAME
+              value: aigent-squad
+            {{- range $k, $v := .Values.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            {{- if .Values.otel.enabled }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.otel.endpoint | quote }}
+            {{- end }}
+            {{- if .Values.redis.enabled }}
+            - name: REDIS_URL
+              value: "redis://{{ include "aigent-squad.fullname" . }}-redis:6379"
+            {{- end }}
+          volumeMounts:
+            - name: agents-volume
+              mountPath: /app/agents
+              readOnly: true
+          resources:
+            {{- toYaml .Values.supervisor.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: agents-volume
+          {{- if eq .Values.agentsSource.type "git" }}
+          emptyDir: {}
+          {{- else }}
+          projected:
+            sources:
+              {{- range .Values.agents }}
+              - configMap:
+                  name: {{ include "aigent-squad.fullname" $ }}-agent-{{ .name }}
+                  items:
+                    - key: agent.yaml
+                      path: {{ .name }}/agent.yaml
+                    - key: prompt.md
+                      path: {{ .name }}/prompt.md
+              {{- end }}
+          {{- end }}

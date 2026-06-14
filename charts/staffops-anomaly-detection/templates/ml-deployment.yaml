@@ -1,0 +1,83 @@
+{{- if .Values.ml.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "staffops-ad.ml.fullname" . }}
+  labels:
+    {{- include "staffops-ad.ml.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.ml.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "staffops-ad.ml.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "staffops-ad.ml.labels" . | nindent 8 }}
+        {{- with .Values.ml.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.ml.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ml.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: ml
+          image: {{ include "staffops-ad.ml.image" . | quote }}
+          imagePullPolicy: {{ include "staffops-ad.ml.imagePullPolicy" . }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.ml.grpcPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.ml.metricsPort }}
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: grpc
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: grpc
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          {{- with .Values.ml.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          # When readOnlyRootFilesystem=true, Python needs writable /tmp for
+          # Prophet's matplotlib cache and Isolation Forest scratch space.
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.ml.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.ml.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ml.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ml.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 30
+{{- end }}

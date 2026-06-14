@@ -1,0 +1,124 @@
+## AIgent-Squad Helm Values
+## Config-driven multi-agent platform — 1 image, N agents via config.
+
+image:
+  repository: harbor.bdc.app.br/aigent-squad/supervisor
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+## How agent configs are loaded into the pod
+agentsSource:
+  # configmap: inline configs from values.yaml agents[].config/prompt
+  # git: clone from a git repo at startup (initContainer)
+  type: configmap
+  # Git source fields (used when type=git)
+  repo: ""
+  path: "agents"
+  ref: "main"
+
+## Supervisor process — orchestrates all agents in-process
+supervisor:
+  replicas: 1
+  port: 8000
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+
+## Agent definitions
+agents:
+  - name: aws
+    config: |
+      name: aws
+      description: AWS infrastructure specialist
+      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
+      tools: [aws_cli, cost_explorer]
+    prompt: |
+      You are an AWS infrastructure specialist agent.
+      You help with EKS, IAM, networking, and cloud resources.
+
+  - name: kubernetes
+    config: |
+      name: kubernetes
+      description: Kubernetes operations specialist
+      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
+      tools: [kubectl, helm]
+    prompt: |
+      You are a Kubernetes operations specialist agent.
+      You help with cluster management, workloads, and troubleshooting.
+
+  - name: finops
+    config: |
+      name: finops
+      description: FinOps cost optimization specialist
+      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
+      tools: [cost_explorer, savings_plans]
+    prompt: |
+      You are a FinOps specialist agent.
+      You help with cost analysis, optimization, and allocation.
+
+  - name: devops
+    config: |
+      name: devops
+      description: DevOps CI/CD and automation specialist
+      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
+      tools: [gitlab_ci, docker, argocd]
+    prompt: |
+      You are a DevOps specialist agent.
+      You help with CI/CD pipelines, automation, and deployments.
+
+  - name: observability
+    config: |
+      name: observability
+      description: Observability and monitoring specialist
+      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
+      tools: [victoriametrics, loki, tempo, grafana]
+    prompt: |
+      You are an Observability specialist agent.
+      You help with metrics, logs, traces, and alerting.
+
+## Redis for agent state/memory
+redis:
+  enabled: true
+  password: ""  # Use ExternalSecret in production
+
+## Shared environment variables
+env:
+  AWS_REGION: "us-east-1"
+  BEDROCK_MODEL_ID: "anthropic.claude-sonnet-4-20250514-v1:0"
+  ENVIRONMENT: "PRD"
+  LOG_LEVEL: "info"
+  # INTERNAL_API_TOKEN: loaded via secretKeyRef in production
+
+## ServiceAccount (IRSA for AWS access)
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/aigent-squad-role
+
+## Pod-level security context
+podSecurityContext:
+  fsGroup: 10001
+
+## Container-level security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+## OpenTelemetry
+otel:
+  enabled: true
+  endpoint: "http://otel-collector.monitoring:4317"
+
+## Mandatory labels
+labels:
+  CostCenter: "Platform-Infrastructure"
+  Environment: "PRD"

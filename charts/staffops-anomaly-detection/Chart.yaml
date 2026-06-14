@@ -1,0 +1,46 @@
+apiVersion: v2
+name: staffops-anomaly-detection
+description: |
+  Distributed anomaly detection for Kubernetes clusters. Combines adaptive
+  statistical detection (Go controller + workers) with ML-based forecasting
+  and multivariate analysis (Python). Consumes metrics from VictoriaMetrics
+  and logs from Loki, fires correlated alerts via Alertmanager.
+
+type: application
+
+# Chart version follows the chart's own SemVer (independent of appVersion).
+# Bump on every chart change. Keep MAJOR/MINOR aligned with breaking values.yaml changes.
+version: 0.1.0
+
+# appVersion tracks the upstream staffops-anomaly-detection controller release.
+# Bump when the default container image tag changes.
+appVersion: "0.7.0"
+
+kubeVersion: ">=1.24.0-0"
+
+home: https://github.com/karlipegomes/staffops-anomaly-detection
+sources:
+  - https://github.com/karlipegomes/staffops-anomaly-detection
+  - https://github.com/karlipegomes/helm-charts
+
+icon: https://raw.githubusercontent.com/karlipegomes/staffops-anomaly-detection/main/docs/assets/icon.png
+
+keywords:
+  - anomaly-detection
+  - observability
+  - sre
+  - victoriametrics
+  - loki
+  - alertmanager
+  - machine-learning
+
+maintainers:
+  - name: karlipegomes
+    url: https://github.com/karlipegomes
+
+annotations:
+  artifacthub.io/category: monitoring-logging
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial chart release for staffops-anomaly-detection v0.7.0

@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "staffops-ad.fullname" . }}-test-connection
+  labels:
+    {{- include "staffops-ad.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: connection-test
+      image: curlimages/curl:8.6.0
+      command: ["sh", "-c"]
+      args:
+        - |
+          set -e
+          echo "Probing controller /healthz ..."
+          curl -fsS http://{{ include "staffops-ad.controller.fullname" . }}:{{ .Values.controller.service.port }}/healthz
+          echo
+          echo "Probing controller /readyz ..."
+          curl -fsS http://{{ include "staffops-ad.controller.fullname" . }}:{{ .Values.controller.service.port }}/readyz || echo "WARN: readyz failed (datasources may be unreachable from this cluster)"
+          echo
+          echo "Fetching first 20 staffops_ad_* metrics ..."
+          curl -fsS http://{{ include "staffops-ad.controller.fullname" . }}:{{ .Values.controller.service.port }}/metrics | grep -m 20 '^staffops_ad_' || echo "WARN: no staffops_ad_* metrics yet (controller may still be warming up)"
+          echo
+          echo "✅ smoke test passed"

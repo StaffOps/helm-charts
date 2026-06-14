@@ -1,0 +1,23 @@
+{{- if .Values.grafanaDashboard.enabled -}}
+{{/*
+Grafana sidecar discovery: when the Grafana sidecar runs with
+SIDECAR_DASHBOARDS_ENABLED=true and watches for ConfigMaps with a specific
+label, this ConfigMap will be auto-imported. Configurable via:
+
+  grafanaDashboard.labelKey   (default: grafana_dashboard)
+  grafanaDashboard.labelValue (default: "1")
+
+The dashboard JSON is embedded from `files/dashboards/operator.json` via
+`.Files.Get` — keeps the chart self-contained without external references.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "staffops-ad.fullname" . }}-dashboards
+  labels:
+    {{- include "staffops-ad.labels" . | nindent 4 }}
+    {{ .Values.grafanaDashboard.labelKey }}: {{ .Values.grafanaDashboard.labelValue | quote }}
+data:
+  staffops-ad-operator.json: |-
+{{ .Files.Get "files/dashboards/operator.json" | indent 4 }}
+{{- end }}

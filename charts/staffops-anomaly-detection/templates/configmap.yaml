@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "staffops-ad.fullname" . }}-config
+  labels:
+    {{- include "staffops-ad.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    cluster: {{ .Values.clusterName | quote }}
+
+    redis:
+      addr: {{ include "staffops-ad.redis.addr" . | quote }}
+      db: {{ if .Values.redis.enabled }}0{{ else }}{{ .Values.redis.external.db }}{{ end }}
+      {{- if not .Values.redis.enabled }}
+      {{- if .Values.redis.external.existingSecret }}
+      # password mounted via env (see Deployment env: REDIS_PASSWORD)
+      password: ""
+      {{- end }}
+      {{- end }}
+
+    datasources:
+      victoriametrics:
+        url: {{ required "datasources.victoriametrics.url is required" .Values.datasources.victoriametrics.url | quote }}
+        timeout: {{ .Values.datasources.victoriametrics.timeout | default "30s" }}
+      loki:
+        url: {{ required "datasources.loki.url is required" .Values.datasources.loki.url | quote }}
+        timeout: {{ .Values.datasources.loki.timeout | default "30s" }}
+      alertmanager:
+        url: {{ required "datasources.alertmanager.url is required" .Values.datasources.alertmanager.url | quote }}
+
+    ml:
+      endpoint: {{ if .Values.ml.enabled }}{{ include "staffops-ad.ml.endpoint" . | quote }}{{ else }}""{{ end }}
+      enabled: {{ .Values.ml.enabled }}
+      timeout: {{ .Values.ml.timeout | default "5s" }}
+
+    controller:
+      job_interval: {{ .Values.controller.jobInterval | default "30s" }}
+      correlation_window: {{ .Values.controller.correlationWindow | default "2m" }}
+      cooldown: {{ .Values.controller.cooldown | default "5m" }}
+      lease_name: {{ .Values.controller.leaderElection.leaseName | default "staffops-ad-controller" | quote }}
+      lease_namespace: {{ .Release.Namespace | quote }}
+      metrics_port: {{ .Values.controller.service.port | default 8080 }}
+      worker_endpoint: {{ include "staffops-ad.worker.endpoint" . | quote }}
+      workload_pattern_min_pods: {{ .Values.controller.workloadPatternMinPods | default 3 }}
+      leader_election:
+        # Auto-enable leader election when running multiple replicas. Single
+        # replica skips election (acts as always-leader) for faster startup.
+        enabled: {{ and .Values.controller.leaderElection.enabled (gt (int .Values.controller.replicaCount) 1) }}
+        identity: ""    # defaults to POD_NAME via downward API
+        lease_duration: {{ .Values.controller.leaderElection.leaseDuration | default "15s" }}
+        renew_deadline: {{ .Values.controller.leaderElection.renewDeadline | default "10s" }}
+        retry_period: {{ .Values.controller.leaderElection.retryPeriod | default "2s" }}
+
+    worker:
+      grpc_port: {{ .Values.worker.grpcPort | default 50052 }}
+      metrics_port: {{ .Values.worker.metricsPort | default 8081 }}
+      concurrency: {{ .Values.worker.concurrency | default 5 }}
+
+    baseline:
+      window_size: {{ .Values.baseline.windowSize | default 60 }}
+      ewma_alpha: {{ .Values.baseline.ewmaAlpha | default 0.3 }}
+      zscore_threshold: {{ .Values.baseline.zscoreThreshold | default 3.0 }}
+      warm_up_samples: {{ .Values.baseline.warmUpSamples | default 60 }}
+      seasonal_min_days: {{ .Values.baseline.seasonalMinDays | default 7 }}
+
+    detection:
+      static_rules:
+        {{- toYaml .Values.detection.staticRules | nindent 8 }}
+      adaptive_metrics:
+        {{- toYaml .Values.detection.adaptiveMetrics | nindent 8 }}
+      log_patterns:
+        {{- toYaml .Values.detection.logPatterns | nindent 8 }}
+      event_patterns:
+        {{- toYaml .Values.detection.eventPatterns | nindent 8 }}
+
+    suppression:
+      exclude_namespaces_csv: {{ join "," .Values.suppression.excludeNamespaces | quote }}
+      exclude_static_only_csv: {{ join "," .Values.suppression.excludeStaticOnly | quote }}
+
+    enrichment:
+      enabled: {{ .Values.enrichment.enabled }}
+      cache_ttl: {{ .Values.enrichment.cacheTTL | default "30s" }}
+      query_timeout: {{ .Values.enrichment.queryTimeout | default "5s" }}
+      max_concurrent: {{ .Values.enrichment.maxConcurrent | default 5 }}
+      pod_bundle:
+        {{- toYaml .Values.enrichment.podBundle | nindent 8 }}
+      service_bundle:
+        {{- toYaml .Values.enrichment.serviceBundle | nindent 8 }}
+
+    links:
+      grafana_base_url: {{ .Values.links.grafanaBaseUrl | quote }}
+      tempo_base_url: {{ .Values.links.tempoBaseUrl | quote }}
+      loki_base_url: {{ .Values.links.lokiBaseUrl | quote }}
+      runbook_base_url: {{ .Values.links.runbookBaseUrl | quote }}
+      grafana_vm_datasource_uid: {{ .Values.links.grafanaVMDatasourceUid | quote }}
+      grafana_tempo_datasource_uid: {{ .Values.links.grafanaTempoDatasourceUid | quote }}
+      grafana_loki_datasource_uid: {{ .Values.links.grafanaLokiDatasourceUid | quote }}

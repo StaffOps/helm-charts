@@ -1,0 +1,21 @@
+{{- if .Values.ml.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "staffops-ad.ml.fullname" . }}
+  labels:
+    {{- include "staffops-ad.ml.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: {{ .Values.ml.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+    - name: metrics
+      port: {{ .Values.ml.metricsPort }}
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    {{- include "staffops-ad.ml.selectorLabels" . | nindent 4 }}
+{{- end }}

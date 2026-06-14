@@ -1,0 +1,58 @@
+# Values used by chart-testing (ct) in CI when validating the chart on a kind
+# cluster. Just-enough config to make `helm template` and `helm install`
+# succeed — no attempt to actually exercise the detection cycle (that would
+# need real VM/Loki backends).
+#
+# Override the required datasource URLs with placeholder values so `required`
+# template guards pass. Reduce replicas to 1 to keep the kind cluster light.
+
+clusterName: "ct-test"
+
+datasources:
+  victoriametrics:
+    url: http://victoria-metrics.example.invalid/select/0/prometheus
+  loki:
+    url: http://loki.example.invalid
+  alertmanager:
+    url: http://alertmanager.example.invalid
+
+controller:
+  replicaCount: 1
+  dryRun: true
+  leaderElection:
+    enabled: false   # single replica, no need
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+worker:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+ml:
+  # Disable ML in CI — Python image is 400MB+ and unnecessary for chart validation.
+  enabled: false
+
+redis:
+  enabled: true
+  persistence:
+    enabled: false   # emptyDir, ephemeral
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# All optional integrations OFF for CI — they require operators/sidecars
+# we don't install in a vanilla kind cluster.
+serviceMonitor:
+  enabled: false
+vmServiceScrape:
+  enabled: false
+vmRule:
+  enabled: false
+grafanaDashboard:
+  enabled: false

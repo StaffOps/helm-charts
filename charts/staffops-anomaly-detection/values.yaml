@@ -1,0 +1,412 @@
+# Default values for staffops-anomaly-detection.
+# This is a YAML-formatted file. Declare variables to be passed into your templates.
+
+# -- Override the chart name. By default fullname is `<release>-<chart-name>`.
+nameOverride: ""
+# -- Override the fully qualified app name.
+fullnameOverride: ""
+
+# -- Cluster identity, used as the constant `cluster` label on all metrics and
+# in alert payloads. Should be unique per cluster.
+clusterName: "default"
+
+# =============================================================================
+# Image registry / pull secrets
+# =============================================================================
+image:
+  # -- Shared registry for controller, worker, and ml images.
+  registry: ghcr.io
+  # -- Shared tag. Defaults to .Chart.AppVersion.
+  tag: ""
+  # -- Pull policy.
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+# -- Common labels applied to every resource managed by this chart.
+commonLabels: {}
+# -- Common annotations applied to every resource managed by this chart.
+commonAnnotations: {}
+
+# =============================================================================
+# Datasources — REQUIRED. The chart will fail to render without these.
+# All endpoint URLs come via values (12-factor: env-driven config).
+# =============================================================================
+datasources:
+  victoriametrics:
+    # -- VictoriaMetrics read endpoint (PromQL). Must end with the prometheus path
+    # (e.g. `https://vm.example.com/select/0/prometheus`).
+    url: ""
+    timeout: 30s
+  loki:
+    # -- Loki read endpoint (LogQL). Should NOT include `/loki/api/v1/...`.
+    url: ""
+    timeout: 30s
+  alertmanager:
+    # -- Alertmanager v2 endpoint. The chart appends `/api/v2/alerts` for dispatch.
+    url: ""
+
+# =============================================================================
+# Controller — orchestration, correlation, ML calls, dispatch
+# =============================================================================
+controller:
+  # -- Per-component image overrides. Registry/tag/pullPolicy fall back to
+  # the top-level `image:` section when empty.
+  image:
+    repository: karlipegomes/staffops-anomaly-detection-controller
+    tag: ""           # defaults to .Values.image.tag → .Chart.AppVersion
+    registry: ""      # defaults to .Values.image.registry
+    pullPolicy: ""    # defaults to .Values.image.pullPolicy
+
+  # -- Number of controller replicas. >1 enables HA via leader election.
+  replicaCount: 2
+
+  # -- Run controller in dry-run mode (alerts logged but NOT sent to Alertmanager).
+  # Recommended for first deploy until detection quality validated.
+  dryRun: true
+
+  # K8s Lease-based leader election. Enabled automatically when replicaCount > 1.
+  # See docs/architecture/components.md "Leader Election (HA)".
+  leaderElection:
+    enabled: true
+    leaseName: "staffops-ad-controller"
+    leaseDuration: 15s
+    renewDeadline: 10s
+    retryPeriod: 2s
+
+  jobInterval: 30s
+  correlationWindow: 2m
+  cooldown: 5m
+  workloadPatternMinPods: 3
+
+  # -- Override deployment/service names — leave empty to use chart defaults.
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 256Mi   # CPU limits intentionally omitted (avoid throttling)
+
+  # -- Pod-level securityContext.
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+
+  # -- Container-level securityContext.
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+  # -- Extra environment variables for the controller container.
+  extraEnv: []
+  # - name: HTTP_PROXY
+  #   value: http://proxy.example.com:8080
+
+  podAnnotations: {}
+  podLabels: {}
+
+# =============================================================================
+# Workers — stateless query executors, scale horizontally
+# =============================================================================
+worker:
+  # -- Per-component image overrides.
+  image:
+    repository: karlipegomes/staffops-anomaly-detection-worker
+    tag: ""
+    registry: ""
+    pullPolicy: ""
+
+  replicaCount: 3
+  grpcPort: 50052
+  metricsPort: 8081
+  concurrency: 5
+
+  service:
+    # Headless service so gRPC round_robin balancer sees individual pod IPs.
+    type: ClusterIP
+    clusterIP: None
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+  extraEnv: []
+  podAnnotations: {}
+  podLabels: {}
+
+# =============================================================================
+# ML service (Python) — Prophet forecasting + Isolation Forest multivariate
+# =============================================================================
+ml:
+  # -- Toggle the entire ML service. When false, the chart omits ML deployment
+  # and the controller runs without ML calls.
+  enabled: true
+
+  image:
+    registry: ghcr.io
+    repository: karlipegomes/staffops-anomaly-detection-ml
+    tag: ""   # defaults to .Chart.AppVersion
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+  grpcPort: 50051
+  metricsPort: 8082
+  timeout: 5s
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  podAnnotations: {}
+  podLabels: {}
+
+# =============================================================================
+# Redis — baselines, dedup TTL, seasonal profiles
+# =============================================================================
+redis:
+  # -- When true, the chart deploys a single-node Redis. For production, use
+  # `enabled: false` and point `redis.external.addr` at your existing Redis.
+  enabled: true
+
+  image:
+    registry: docker.io
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  persistence:
+    # -- When false, Redis runs ephemeral (emptyDir). State lost on restart —
+    # acceptable for dev; production should enable persistence.
+    enabled: false
+    size: 1Gi
+    storageClass: ""
+
+  # -- External Redis (used when enabled: false). The controller and workers
+  # will connect here. Password is read from a referenced Secret.
+  external:
+    addr: ""           # e.g. "redis.example.com:6379"
+    db: 0
+    existingSecret: "" # name of Secret holding `redis-password` key
+    secretKey: "redis-password"
+
+# =============================================================================
+# Detection rules — forwarded into the controller config.yaml
+# =============================================================================
+detection:
+  # -- Static threshold rules.
+  staticRules:
+    - name: high_cpu_ratio
+      query: |-
+        max(rate(container_cpu_usage_seconds_total{container!=""}[1m])) by (namespace, pod)
+        / max(kube_pod_container_resource_limits{resource="cpu"}) by (namespace, pod)
+      threshold: 0.9
+      operator: ">"
+      severity: warning
+    - name: high_restart_rate
+      query: max(increase(kube_pod_container_status_restarts_total[5m])) by (namespace, pod)
+      threshold: 3
+      operator: ">"
+      severity: critical
+    - name: high_memory_ratio
+      query: |-
+        max(container_memory_working_set_bytes{container!=""}) by (namespace, pod)
+        / max(kube_pod_container_resource_limits{resource="memory"}) by (namespace, pod)
+      threshold: 0.85
+      operator: ">"
+      severity: warning
+
+  # -- Adaptive metrics evaluated with EWMA + Z-Score.
+  adaptiveMetrics:
+    - name: cpu_by_workload
+      query: max(rate(container_cpu_usage_seconds_total{container!=""}[1m])) by (namespace, pod)
+      group_by: [namespace, pod]
+    - name: error_rate_by_service
+      query: sum(rate(spanmetrics_apm_calls_total{status_code="STATUS_CODE_ERROR"}[1m])) by (service_name)
+      group_by: [service_name]
+
+  # -- Log-based detection (Loki).
+  logPatterns:
+    - name: error_rate_by_namespace
+      query: sum(rate({service_namespace=~".+"} |= "error" [1m])) by (service_namespace)
+      group_by: [service_namespace]
+
+  # -- K8s event reasons that trigger detection.
+  eventPatterns:
+    - CrashLoopBackOff
+    - OOMKilled
+    - Evicted
+    - FailedScheduling
+
+baseline:
+  windowSize: 60
+  ewmaAlpha: 0.3
+  zscoreThreshold: 3.0
+  warmUpSamples: 60
+  seasonalMinDays: 7
+
+# =============================================================================
+# Suppression — namespace-level filtering (org-specific, NEVER hardcoded)
+# =============================================================================
+suppression:
+  # -- Namespaces fully excluded from detection (no detection at all).
+  excludeNamespaces: ["kube-system", "kube-public", "kube-node-lease"]
+  # -- Namespaces where static rules are suppressed but adaptive still fires
+  # (use for batch/cron workloads with unpredictable resource patterns).
+  excludeStaticOnly: []
+
+# =============================================================================
+# Enrichment — context queries fanned out per fired alert
+# =============================================================================
+enrichment:
+  enabled: true
+  cacheTTL: 30s
+  queryTimeout: 5s
+  maxConcurrent: 5
+  # -- Pod-level enrichment bundle.
+  podBundle:
+    - name: cpu_ratio
+      query: 'max(rate(container_cpu_usage_seconds_total{namespace="$namespace",pod="$pod",container!=""}[1m])) / max(kube_pod_container_resource_limits{resource="cpu",namespace="$namespace",pod="$pod"})'
+    - name: memory_ratio
+      query: 'max(container_memory_working_set_bytes{namespace="$namespace",pod="$pod",container!=""}) / max(kube_pod_container_resource_limits{resource="memory",namespace="$namespace",pod="$pod"})'
+    - name: restarts_5m
+      query: 'max(increase(kube_pod_container_status_restarts_total{namespace="$namespace",pod="$pod"}[5m]))'
+  # -- Service-level enrichment bundle.
+  serviceBundle:
+    - name: error_rate_1m
+      query: 'sum(rate(spanmetrics_apm_calls_total{service_name="$service_name",status_code="STATUS_CODE_ERROR"}[1m]))'
+    - name: latency_p99_5m
+      query: 'histogram_quantile(0.99, sum(rate(spanmetrics_apm_duration_milliseconds_bucket{service_name="$service_name"}[5m])) by (le))'
+
+# =============================================================================
+# Alert deep links — annotations rendered into alert payloads
+# =============================================================================
+links:
+  grafanaBaseUrl: ""
+  tempoBaseUrl: ""
+  lokiBaseUrl: ""
+  runbookBaseUrl: ""
+  grafanaVMDatasourceUid: ""
+  grafanaTempoDatasourceUid: ""
+  grafanaLokiDatasourceUid: ""
+
+# =============================================================================
+# RBAC — leader election Lease + read-only K8s events
+# =============================================================================
+rbac:
+  # -- Create Role / RoleBinding for the controller ServiceAccount.
+  create: true
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# =============================================================================
+# Observability integrations (all optional, all OFF by default)
+# =============================================================================
+serviceMonitor:
+  # -- Create a Prometheus Operator ServiceMonitor for /metrics scraping.
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+
+vmServiceScrape:
+  # -- Create a vm-operator VMServiceScrape (preferred over ServiceMonitor on VM clusters).
+  enabled: false
+  interval: 30s
+  labels: {}
+
+vmRule:
+  # -- Create vm-operator VMRule with health alerts and recording rules
+  # (top noisy workloads, cardinality watch).
+  enabled: false
+  namespace: ""        # defaults to release namespace
+  additionalLabels: {}
+
+grafanaDashboard:
+  # -- Create a ConfigMap labelled `grafana_dashboard: "1"` (sidecar discovery).
+  enabled: false
+  labelKey: grafana_dashboard
+  labelValue: "1"
+
+# =============================================================================
+# Pod Disruption Budget — keep at least one controller and one worker running
+# during voluntary disruptions (node drain, rolling update).
+# =============================================================================
+podDisruptionBudget:
+  controller:
+    enabled: false
+    minAvailable: 1
+  worker:
+    enabled: false
+    minAvailable: 1
+
+# =============================================================================
+# Network Policy — restrict pod-to-pod traffic
+# =============================================================================
+networkPolicy:
+  enabled: false
+  # When enabled, allow ingress to:
+  # - controller metrics from these namespaces (e.g. monitoring stack)
+  # - worker gRPC from controller pods only
+  # - ML gRPC from controller pods only
+  monitoringNamespace: monitoring

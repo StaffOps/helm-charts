@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "aigent-squad.fullname" . }}
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.supervisor.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "aigent-squad.selectorLabels" . | nindent 4 }}

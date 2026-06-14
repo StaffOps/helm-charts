@@ -1,0 +1,39 @@
+## Minimal values for chart-testing (ct lint / ct install)
+image:
+  repository: harbor.bdc.app.br/aigent-squad/supervisor
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+supervisor:
+  replicas: 1
+  port: 8000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+agentsSource:
+  type: configmap
+
+agents:
+  - name: test-agent
+    config: |
+      name: test-agent
+      description: Test agent for ct
+      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
+      tools: []
+    prompt: |
+      You are a test agent.
+
+redis:
+  enabled: false
+
+env:
+  AWS_REGION: "us-east-1"
+  ENVIRONMENT: "DEV"
+
+otel:
+  enabled: false
+  endpoint: ""

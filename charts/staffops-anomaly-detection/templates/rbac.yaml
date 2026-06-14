@@ -1,0 +1,51 @@
+{{- if .Values.serviceAccount.create -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "staffops-ad.serviceAccountName" . }}
+  labels:
+    {{- include "staffops-ad.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- if .Values.rbac.create }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "staffops-ad.fullname" . }}
+  labels:
+    {{- include "staffops-ad.labels" . | nindent 4 }}
+rules:
+  # Lease for leader election. Required when controller.replicaCount > 1.
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "create", "update"]
+  # Read-only K8s events for the event-pattern detector (CrashLoopBackOff,
+  # OOMKilled, etc.). The watcher only needs list+watch.
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch"]
+  # Pod metadata is consulted by the correlator to extract workload
+  # (deployment/statefulset/daemonset name) from pod names. Read-only.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "staffops-ad.fullname" . }}
+  labels:
+    {{- include "staffops-ad.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "staffops-ad.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ include "staffops-ad.fullname" . }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

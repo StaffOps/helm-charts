@@ -1,0 +1,16 @@
+{{- if eq .Values.agentsSource.type "configmap" }}
+{{- range .Values.agents }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "aigent-squad.fullname" $ }}-agent-{{ .name }}
+  labels:
+    {{- include "aigent-squad.labels" $ | nindent 4 }}
+data:
+  agent.yaml: |
+    {{- .config | nindent 4 }}
+  prompt.md: |
+    {{- .prompt | nindent 4 }}
+{{- end }}
+{{- end }}

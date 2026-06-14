@@ -1,0 +1,24 @@
+apiVersion: v2
+name: aigent-squad
+description: |
+  Config-driven multi-agent platform for AWS/K8s operations.
+  Agents are defined by YAML config + prompt, not code. Add agents
+  via values.yaml without rebuilding the image.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.24.0-0"
+home: https://github.com/karlipegomes/AIgent-squad
+sources:
+  - https://github.com/karlipegomes/AIgent-squad
+  - https://github.com/karlipegomes/helm-charts
+keywords:
+  - ai-agents
+  - multi-agent
+  - observability
+  - aws
+  - kubernetes
+  - config-driven
+maintainers:
+  - name: karlipegomes
+    url: https://github.com/karlipegomes

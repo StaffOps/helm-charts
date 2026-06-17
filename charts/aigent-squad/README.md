@@ -9,10 +9,10 @@ One chart, two topologies:
 | Topology | What it deploys | Matches |
 |----------|-----------------|---------|
 | `inProcess` (default) | A single **supervisor** process that runs all agents from config. | ADR-001, spec `02-unify-agent-architecture` |
-| `distributed` | **supervisor + 5 specialist agents + mcp-server**, each its own Deployment/Service/ServiceAccount, KEDA-scaled, NetworkPolicy-isolated. | spec `05-helm-chart` |
+| `distributed` | **supervisor + 5 specialist agents + mcp-server**, each its own Deployment/Service/ServiceAccount, autoscaled (HPA or KEDA), NetworkPolicy-isolated. | spec `05-helm-chart` |
 
-Everything CRD-dependent (KEDA, Argo Rollouts, External Secrets, NetworkPolicy,
-Ingress) is **opt-in and off by default**, so `helm lint`/`template` and a bare
+Everything CRD-dependent (KEDA, External Secrets, NetworkPolicy, Gateway API)
+is **opt-in and off by default**, so `helm lint`/`template` and a bare
 `ct install` stay green on a vanilla cluster.
 
 > Backing services (DynamoDB, ElastiCache Redis, Bedrock) are **managed** and not
@@ -45,7 +45,7 @@ turns on KEDA, NetworkPolicy, ExternalSecret and Ingress.
 
 ## The `services` map
 
-Each key renders a Deployment (or Rollout) + Service + ServiceAccount. The map is
+Each key renders a workload (Deployment or StatefulSet) + Service + ServiceAccount. The map is
 **user-extensible** — every per-service field has a safe default, so adding an
 agent needs only the keys you care about:
 
@@ -65,11 +65,40 @@ services:
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { memory: 512Mi }
+    workload:
+      kind: Deployment         # Deployment | StatefulSet
     scaling:
       replicas: 1
-      keda: { enabled: true, minReplicas: 1, maxReplicas: 10, triggers: [] }
-    rollout: { enabled: false }   # true → Argo Rollout (canary)
+      autoscaling:
+        kind: none             # none | hpa | keda
+        minReplicas: 1
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 70
     networkPolicy: { enabled: true, allowFrom: [] }
+```
+
+## Workload & autoscaling (provider-agnostic)
+
+Native Kubernetes workloads only — **no Argo Rollout**, no vendor coupling.
+
+| Setting | Values | Notes |
+|---------|--------|-------|
+| `workload.kind` | `Deployment` (default) \| `StatefulSet` | StatefulSet also gets a headless Service + `volumeClaimTemplates`. |
+| `scaling.autoscaling.kind` | `none` (default) \| `hpa` \| `keda` | `hpa` → `autoscaling/v2` HPA (CPU, optional memory); `keda` → `ScaledObject` (needs KEDA CRDs). When autoscaled, `replicas` is omitted. |
+
+```yaml
+# Plain HPA on CPU
+scaling: { autoscaling: { kind: hpa, minReplicas: 2, maxReplicas: 10, targetCPUUtilizationPercentage: 70 } }
+
+# KEDA (custom triggers; defaults to CPU when triggers: [])
+scaling: { autoscaling: { kind: keda, minReplicas: 1, maxReplicas: 20, triggers: [ ... ] } }
+
+# StatefulSet with a persistent volume
+workload:
+  kind: StatefulSet
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec: { accessModes: [ReadWriteOnce], resources: { requests: { storage: 1Gi } } }
 ```
 
 ## Routing (provider-agnostic)
@@ -147,5 +176,6 @@ helm template r charts/aigent-squad -f charts/aigent-squad/values-distributed.ya
 - `resources.requests` on every container; mandatory labels on every pod.
 - Per-service ServiceAccount with IRSA annotation (no mounted credentials).
 - Liveness `/healthz` + readiness `/ready`; `preStop` sleep + graceful shutdown.
-- KEDA `ScaledObject` (not raw HPA); Argo Rollouts optional for canary.
+- Autoscaling is your choice: none, `autoscaling/v2` HPA, or KEDA `ScaledObject`.
+  Workload is a native Deployment or StatefulSet — no Argo Rollout.
 - NetworkPolicy isolates specialists; only supervisor + mcp-server are exposed.

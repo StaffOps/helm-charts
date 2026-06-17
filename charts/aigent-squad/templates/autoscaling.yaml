@@ -1,0 +1,80 @@
+{{- /*
+Provider-agnostic autoscaling per service. Pick via services.<name>.scaling
+.autoscaling.kind:
+  none → nothing rendered (uses scaling.replicas)
+  hpa  → autoscaling/v2 HorizontalPodAutoscaler (CPU, optional memory)
+  keda → keda.sh/v1alpha1 ScaledObject (needs the KEDA CRDs)
+
+Both target the service's Deployment or StatefulSet.
+*/ -}}
+{{- $root := . -}}
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.enabled }}
+{{- $as := dig "scaling" "autoscaling" dict $svc }}
+{{- $kind := dig "kind" "none" $as }}
+{{- if or (eq $kind "hpa") (eq $kind "keda") }}
+{{- $ctx := dict "root" $root "name" $name }}
+{{- $fullname := include "aigent-squad.serviceFullname" $ctx }}
+{{- $workloadKind := dig "workload" "kind" "Deployment" $svc }}
+{{- $minR := dig "minReplicas" 1 $as }}
+{{- $maxR := dig "maxReplicas" 5 $as }}
+---
+{{- if eq $kind "hpa" }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "aigent-squad.serviceLabels" $ctx | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: {{ $workloadKind }}
+    name: {{ $fullname }}
+  minReplicas: {{ $minR }}
+  maxReplicas: {{ $maxR }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ dig "targetCPUUtilizationPercentage" 70 $as }}
+    {{- with dig "targetMemoryUtilizationPercentage" nil $as }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+{{- else }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "aigent-squad.serviceLabels" $ctx | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: {{ $workloadKind }}
+    name: {{ $fullname }}
+  minReplicaCount: {{ $minR }}
+  maxReplicaCount: {{ $maxR }}
+  pollingInterval: {{ dig "pollingInterval" 30 $as }}
+  triggers:
+    {{- $triggers := dig "triggers" list $as }}
+    {{- if $triggers }}
+    {{- toYaml $triggers | nindent 4 }}
+    {{- else }}
+    # Default CPU trigger when none specified.
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: {{ dig "targetCPUUtilizationPercentage" 70 $as | quote }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

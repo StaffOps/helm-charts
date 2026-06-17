@@ -1,38 +1,51 @@
 {{- /*
-Renders one workload per enabled service: an Argo Rollout when
-services.<name>.rollout.enabled, otherwise a Deployment. KEDA owns the replica
-count when scaling.keda.enabled, so replicas is omitted in that case.
+Renders one workload per enabled service: a Deployment (default) or a
+StatefulSet when services.<name>.workload.kind == "StatefulSet".
 
-The services map is user-extensible: every per-service field is read with a
-safe default via `dig`, so adding a service requires only the keys you care about.
+No Argo Rollout — this chart is provider-agnostic and uses native Kubernetes
+workloads only. Replica count is owned by the autoscaler when scaling.autoscaling
+.kind is hpa/keda, so `replicas` is omitted in that case.
+
+The services map is user-extensible: every per-service field is read with a safe
+default via `dig`, so adding a service requires only the keys you care about.
 */ -}}
 {{- $root := . -}}
 {{- range $name, $svc := .Values.services }}
 {{- if $svc.enabled }}
 {{- $ctx := dict "root" $root "name" $name }}
 {{- $fullname := include "aigent-squad.serviceFullname" $ctx }}
-{{- $rolloutEnabled := dig "rollout" "enabled" false $svc }}
-{{- $kedaEnabled := dig "scaling" "keda" "enabled" false $svc }}
-{{- $mountAgents := dig "mountAgents" false $svc }}
+{{- $kind := dig "workload" "kind" "Deployment" $svc }}
+{{- $autoscaleKind := dig "scaling" "autoscaling" "kind" "none" $svc }}
+{{- $autoscaled := or (eq $autoscaleKind "hpa") (eq $autoscaleKind "keda") }}
 {{- $replicas := dig "scaling" "replicas" 1 $svc }}
+{{- $mountAgents := dig "mountAgents" false $svc }}
 {{- $resources := dig "resources" (dict "requests" (dict "cpu" "100m" "memory" "256Mi") "limits" (dict "memory" "512Mi")) $svc }}
 ---
-apiVersion: {{ if $rolloutEnabled }}argoproj.io/v1alpha1{{ else }}apps/v1{{ end }}
-kind: {{ if $rolloutEnabled }}Rollout{{ else }}Deployment{{ end }}
+apiVersion: apps/v1
+kind: {{ $kind }}
 metadata:
   name: {{ $fullname }}
   labels:
     {{- include "aigent-squad.serviceLabels" $ctx | nindent 4 }}
 spec:
-  {{- if not $kedaEnabled }}
+  {{- if not $autoscaled }}
   replicas: {{ $replicas }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "aigent-squad.selectorLabels" $ctx | nindent 6 }}
-  {{- if $rolloutEnabled }}
+  {{- if eq $kind "StatefulSet" }}
+  serviceName: {{ default (printf "%s-headless" $fullname) (dig "workload" "serviceName" "" $svc) }}
+  podManagementPolicy: {{ dig "workload" "podManagementPolicy" "OrderedReady" $svc }}
+  {{- with dig "workload" "volumeClaimTemplates" list $svc }}
+  volumeClaimTemplates:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- else }}
+  {{- with dig "workload" "strategy" dict $svc }}
   strategy:
-    {{- toYaml (dig "rollout" "strategy" dict $svc) | nindent 4 }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- end }}
   template:
     metadata:

@@ -6,7 +6,7 @@ Helm charts for the [StaffOps](https://github.com/karlipegomes) suite of open-so
 
 | Chart | Version | App Version | Description |
 |-------|---------|-------------|-------------|
-| [aigent-squad](./charts/aigent-squad) | ![chart-version](https://img.shields.io/badge/chart-0.3.0-blue) | ![app-version](https://img.shields.io/badge/app-0.1.0-green) | Config-driven multi-agent platform for AWS/K8s operations (supervisor + specialist agents, Bedrock-direct) |
+| [aigent-squad](./charts/aigent-squad) | ![chart-version](https://img.shields.io/badge/chart-0.4.0-blue) | ![app-version](https://img.shields.io/badge/app-0.1.0-green) | Config-driven multi-agent platform for AWS/K8s operations (supervisor + specialist agents, Bedrock-direct) |
 | [staffops-anomaly-detection](./charts/staffops-anomaly-detection) | ![chart-version](https://img.shields.io/badge/chart-0.1.0-blue) | ![app-version](https://img.shields.io/badge/app-0.7.0-green) | Distributed anomaly detection for Kubernetes (Go controller + workers + Python ML) |
 
 ## Usage

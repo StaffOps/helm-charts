@@ -159,7 +159,8 @@ agents:
       You help with metrics, logs, traces, and alerting.
 
 # -----------------------------------------------------------------------------
-# Services map. Each key renders a Deployment (or Rollout) + Service + SA.
+# Services map. Each key renders a workload (Deployment or StatefulSet) +
+# Service + ServiceAccount, with provider-agnostic autoscaling (none/HPA/KEDA).
 # In `inProcess` topology only `supervisor` is used. In `distributed` the
 # specialist + mcp-server entries are enabled (see values-distributed.yaml).
 # -----------------------------------------------------------------------------
@@ -188,23 +189,30 @@ services:
         memory: 512Mi
       limits:
         memory: 1Gi
+    # Workload kind for this service.
+    workload:
+      kind: Deployment        # Deployment | StatefulSet
+      # Deployment-only rolling update knobs (omit to use K8s defaults):
+      strategy: {}
+        # type: RollingUpdate
+        # rollingUpdate: { maxSurge: 25%, maxUnavailable: 0 }
+      # StatefulSet-only:
+      serviceName: ""          # headless service name (defaults to <fullname>-headless)
+      podManagementPolicy: OrderedReady   # OrderedReady | Parallel
+      volumeClaimTemplates: []            # standard PVC templates
     scaling:
       replicas: 1
-      keda:
-        enabled: false
+      # Autoscaling is provider-agnostic: pick none, HPA, or KEDA.
+      autoscaling:
+        kind: none             # none | hpa | keda
         minReplicas: 1
         maxReplicas: 10
-        triggers: []
-    rollout:
-      enabled: false
-      strategy:
-        canary:
-          steps:
-            - setWeight: 20
-            - pause: { duration: 60s }
-            - setWeight: 50
-            - pause: { duration: 60s }
-            - setWeight: 100
+        # --- hpa (kind: hpa) ---
+        targetCPUUtilizationPercentage: 70
+        targetMemoryUtilizationPercentage: null   # set a number to add a memory metric
+        # --- keda (kind: keda) — needs the KEDA CRDs ---
+        pollingInterval: 30
+        triggers: []           # KEDA triggers; defaults to a CPU trigger when empty
     networkPolicy:
       enabled: false
       # extra ingress sources beyond the default (ingress controller namespace)

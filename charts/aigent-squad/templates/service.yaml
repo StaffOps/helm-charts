@@ -2,11 +2,12 @@
 {{- range $name, $svc := .Values.services }}
 {{- if $svc.enabled }}
 {{- $ctx := dict "root" $root "name" $name }}
+{{- $fullname := include "aigent-squad.serviceFullname" $ctx }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "aigent-squad.serviceFullname" $ctx }}
+  name: {{ $fullname }}
   labels:
     {{- include "aigent-squad.serviceLabels" $ctx | nindent 4 }}
 spec:
@@ -18,5 +19,25 @@ spec:
       protocol: TCP
   selector:
     {{- include "aigent-squad.selectorLabels" $ctx | nindent 4 }}
+{{- if eq (dig "workload" "kind" "Deployment" $svc) "StatefulSet" }}
+---
+# Headless service required by the StatefulSet for stable network identities.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ default (printf "%s-headless" $fullname) (dig "workload" "serviceName" "" $svc) }}
+  labels:
+    {{- include "aigent-squad.serviceLabels" $ctx | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http
+      port: {{ $svc.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "aigent-squad.selectorLabels" $ctx | nindent 4 }}
+{{- end }}
 {{- end }}
 {{- end }}

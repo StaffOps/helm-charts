@@ -29,12 +29,12 @@ services:
         memory: 128Mi
       limits:
         memory: 256Mi
+    workload:
+      kind: Deployment
     scaling:
       replicas: 1
-      keda:
-        enabled: false
-    rollout:
-      enabled: false
+      autoscaling:
+        kind: none
     networkPolicy:
       enabled: false
 

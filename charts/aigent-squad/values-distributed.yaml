@@ -1,6 +1,6 @@
 ## Distributed topology overlay (spec 05): supervisor + 5 specialist agents +
-## mcp-server, each its own Deployment/Service/ServiceAccount, KEDA-scaled,
-## NetworkPolicy-isolated, secrets via ExternalSecret.
+## mcp-server, each its own Deployment/Service/ServiceAccount, autoscaled (KEDA here;
+## set autoscaling.kind: hpa for plain HPA), NetworkPolicy-isolated, secrets via ExternalSecret.
 ##
 ##   helm template r charts/aigent-squad -f charts/aigent-squad/values-distributed.yaml
 ##
@@ -26,7 +26,7 @@ services:
       requests: { cpu: 200m, memory: 512Mi }
       limits: { memory: 1Gi }
     scaling:
-      keda: { enabled: true, minReplicas: 2, maxReplicas: 10, triggers: [] }
+      autoscaling: { kind: keda, minReplicas: 2, maxReplicas: 10 }
     networkPolicy: { enabled: true, allowFrom: [] }
 
   aws:
@@ -43,7 +43,7 @@ services:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { memory: 512Mi }
     scaling:
-      keda: { enabled: true, minReplicas: 1, maxReplicas: 15, triggers: [] }
+      autoscaling: { kind: keda, minReplicas: 1, maxReplicas: 15 }
     networkPolicy: { enabled: true, allowFrom: [] }
 
   kubernetes:
@@ -58,7 +58,7 @@ services:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { memory: 512Mi }
     scaling:
-      keda: { enabled: true, minReplicas: 1, maxReplicas: 10, triggers: [] }
+      autoscaling: { kind: keda, minReplicas: 1, maxReplicas: 10 }
     networkPolicy: { enabled: true, allowFrom: [] }
 
   finops:
@@ -75,7 +75,7 @@ services:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { memory: 512Mi }
     scaling:
-      keda: { enabled: true, minReplicas: 1, maxReplicas: 5, triggers: [] }
+      autoscaling: { kind: keda, minReplicas: 1, maxReplicas: 5 }
     networkPolicy: { enabled: true, allowFrom: [] }
 
   devops:
@@ -89,7 +89,7 @@ services:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { memory: 512Mi }
     scaling:
-      keda: { enabled: true, minReplicas: 1, maxReplicas: 5, triggers: [] }
+      autoscaling: { kind: keda, minReplicas: 1, maxReplicas: 5 }
     networkPolicy: { enabled: true, allowFrom: [] }
 
   observability:
@@ -103,7 +103,7 @@ services:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { memory: 512Mi }
     scaling:
-      keda: { enabled: true, minReplicas: 2, maxReplicas: 8, triggers: [] }
+      autoscaling: { kind: keda, minReplicas: 2, maxReplicas: 8 }
     networkPolicy: { enabled: true, allowFrom: [] }
 
   mcp-server:
@@ -117,7 +117,7 @@ services:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { memory: 512Mi }
     scaling:
-      keda: { enabled: true, minReplicas: 1, maxReplicas: 5, triggers: [] }
+      autoscaling: { kind: keda, minReplicas: 1, maxReplicas: 5 }
     networkPolicy: { enabled: true, allowFrom: [] }
 
 # NetworkPolicy on: specialists accept ingress only from the supervisor.

@@ -1,127 +1,261 @@
 ## AIgent-Squad Helm Values
-## Config-driven multi-agent platform — 1 image, N agents via config.
+## Config-driven multi-agent platform for AWS/K8s operations.
+##
+## One chart, two topologies (see `topology` below):
+##   - inProcess  (default): a single supervisor process runs all agents,
+##                 loaded from config (matches ADR-001 + spec 02).
+##   - distributed:          supervisor + N specialist services + mcp-server,
+##                 each its own Deployment/Service/SA (matches spec 05).
+##
+## Everything CRD-dependent (KEDA, Argo Rollouts, ExternalSecret, NetworkPolicy,
+## Ingress) is opt-in and OFF by default so `helm lint`/`template` and a bare
+## `ct install` stay green. Enable per environment via values-<env>.yaml.
 
-image:
-  repository: harbor.bdc.app.br/aigent-squad/supervisor
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
+# -----------------------------------------------------------------------------
+# Topology
+# -----------------------------------------------------------------------------
+# inProcess | distributed
+topology: inProcess
 
-## How agent configs are loaded into the pod
+# -----------------------------------------------------------------------------
+# Global settings — shared by every service (per-service values override these)
+# -----------------------------------------------------------------------------
+global:
+  image:
+    # Images are pulled through the Harbor proxy. Kyverno mutates the registry
+    # automatically — do NOT prefix manually in production (see k8s-best-practices).
+    registry: harbor.bdc.app.br
+    pullPolicy: IfNotPresent
+
+  # Non-sensitive config shared across services (12-factor III).
+  # Secrets must come from ExternalSecret (see `externalSecrets` below), never here.
+  env:
+    AWS_REGION: "us-east-1"
+    BEDROCK_MODEL_ID: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    ENVIRONMENT: "PRD"
+    LOG_LEVEL: "info"
+
+  # OpenTelemetry — App → Collector → Backend (observability-principles).
+  otel:
+    enabled: true
+    endpoint: "http://otel-collector.monitoring:4317"
+
+  # Mandatory Kyverno labels (k8s-best-practices). Without CostCenter the
+  # OTel k8sattributesprocessor will not enrich telemetry.
+  labels:
+    CostCenter: "Platform-Infrastructure"
+    Environment: "PRD"
+
+  # Restricted pod/container security context (k8s-best-practices, cloud-security).
+  podSecurityContext:
+    fsGroup: 10001
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+  # Default probe paths (the code target is /healthz + /ready — see spec 07).
+  # Override per service if an image still exposes only /health.
+  probes:
+    liveness:
+      path: /healthz
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 2
+      failureThreshold: 3
+    readiness:
+      path: /ready
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 3
+
+  # Graceful shutdown (k8s-best-practices: drain before SIGTERM).
+  terminationGracePeriodSeconds: 30
+  preStopSleepSeconds: 5
+
+# -----------------------------------------------------------------------------
+# Backing services — external, NOT deployed by this chart (spec 05).
+# DynamoDB / ElastiCache / Bedrock are managed; consumed via env + secret.
+# -----------------------------------------------------------------------------
+redis:
+  # External ElastiCache endpoint. Password comes from ExternalSecret.
+  host: ""          # e.g. aigent-squad.xxxx.ng.0001.use1.cache.amazonaws.com
+  port: 6379
+  ssl: true
+  # Optional in-cluster Redis for DEV only (single pod, no HA). OFF by default.
+  inCluster:
+    enabled: false
+    image: redis:7-alpine
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+
+dynamodb:
+  sessionsTable: "agent-sessions"
+  endpoint: ""      # leave empty for real DynamoDB; set for DynamoDB Local in DEV
+
+# -----------------------------------------------------------------------------
+# Agent definitions (config-driven). Consumed by the in-process supervisor via a
+# projected volume, or shipped to the distributed agents the same way.
+# -----------------------------------------------------------------------------
 agentsSource:
-  # configmap: inline configs from values.yaml agents[].config/prompt
-  # git: clone from a git repo at startup (initContainer)
+  # configmap: inline configs from `agents[]` below (rendered as ConfigMaps)
+  # git:       cloned from a repo at startup via an initContainer
   type: configmap
-  # Git source fields (used when type=git)
   repo: ""
   path: "agents"
   ref: "main"
-  # For private repos: name of a K8s Secret with key "token" (GitHub PAT or App token)
-  # Create with: kubectl create secret generic git-token --from-literal=token=ghp_xxx
+  # For private repos: name of a Secret with key "token" (GitHub PAT/App token).
   tokenSecret: ""
 
-## Supervisor process — orchestrates all agents in-process
-supervisor:
-  replicas: 1
-  port: 8000
-  resources:
-    requests:
-      cpu: 200m
-      memory: 512Mi
-    limits:
-      memory: 1Gi
-
-## Agent definitions
 agents:
   - name: aws
     config: |
       name: aws
-      description: AWS infrastructure specialist
-      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
-      tools: [aws_cli, cost_explorer]
+      description: AWS infrastructure specialist (read-only)
+      datasources: [aws_cli, cost_explorer]
     prompt: |
       You are an AWS infrastructure specialist agent.
-      You help with EKS, IAM, networking, and cloud resources.
-
+      You help with EC2, RDS, S3, Lambda, VPC, and IAM — read-only.
   - name: kubernetes
     config: |
       name: kubernetes
-      description: Kubernetes operations specialist
-      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
-      tools: [kubectl, helm]
+      description: Kubernetes operations specialist (read-only)
+      datasources: [kubectl, mcp]
     prompt: |
       You are a Kubernetes operations specialist agent.
       You help with cluster management, workloads, and troubleshooting.
-
   - name: finops
     config: |
       name: finops
       description: FinOps cost optimization specialist
-      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
-      tools: [cost_explorer, savings_plans]
+      datasources: [cost_explorer, athena]
     prompt: |
       You are a FinOps specialist agent.
       You help with cost analysis, optimization, and allocation.
-
   - name: devops
     config: |
       name: devops
       description: DevOps CI/CD and automation specialist
-      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
-      tools: [gitlab_ci, docker, argocd]
+      datasources: [gitlab, docs_portal]
     prompt: |
       You are a DevOps specialist agent.
       You help with CI/CD pipelines, automation, and deployments.
-
   - name: observability
     config: |
       name: observability
       description: Observability and monitoring specialist
-      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
-      tools: [victoriametrics, loki, tempo, grafana]
+      datasources: [victoriametrics, loki, tempo, grafana]
     prompt: |
       You are an Observability specialist agent.
       You help with metrics, logs, traces, and alerting.
 
-## Redis for agent state/memory
-redis:
-  enabled: true
-  password: ""  # Use ExternalSecret in production
+# -----------------------------------------------------------------------------
+# Services map. Each key renders a Deployment (or Rollout) + Service + SA.
+# In `inProcess` topology only `supervisor` is used. In `distributed` the
+# specialist + mcp-server entries are enabled (see values-distributed.yaml).
+# -----------------------------------------------------------------------------
+services:
+  supervisor:
+    enabled: true
+    # repository is relative to global.image.registry unless it contains a "/".
+    image:
+      repository: aigent-squad/supervisor
+      tag: "0.1.0"
+    port: 8000
+    # In inProcess mode the supervisor runs every agent → mount the configs.
+    mountAgents: true
+    # Candidate for external exposure via Ingress (only supervisor + mcp).
+    expose: true
+    serviceAccount:
+      create: true
+      name: ""
+      # IRSA — annotate with the role ARN (cloud-security): no creds mounted.
+      annotations: {}
+        # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/aigent-squad-supervisor
+    env: {}
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        memory: 1Gi
+    scaling:
+      replicas: 1
+      keda:
+        enabled: false
+        minReplicas: 1
+        maxReplicas: 10
+        triggers: []
+    rollout:
+      enabled: false
+      strategy:
+        canary:
+          steps:
+            - setWeight: 20
+            - pause: { duration: 60s }
+            - setWeight: 50
+            - pause: { duration: 60s }
+            - setWeight: 100
+    networkPolicy:
+      enabled: false
+      # extra ingress sources beyond the default (ingress controller namespace)
+      allowFrom: []
 
-## Shared environment variables
-env:
-  AWS_REGION: "us-east-1"
-  BEDROCK_MODEL_ID: "anthropic.claude-sonnet-4-20250514-v1:0"
-  ENVIRONMENT: "PRD"
-  LOG_LEVEL: "info"
-  # INTERNAL_API_TOKEN: loaded via secretKeyRef in production
-
-## ServiceAccount (IRSA for AWS access)
-serviceAccount:
-  create: true
-  name: ""
+# -----------------------------------------------------------------------------
+# Ingress — only `expose: true` services are routed. OFF by default.
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: false
+  className: ""
   annotations: {}
-    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/aigent-squad-role
+  host: ""            # e.g. aigent-squad.bdc.app.br
+  tls:
+    enabled: false
+    secretName: ""
+  # path prefix per exposed service (defaults to /<service>)
+  paths: {}
 
-## Pod-level security context
-podSecurityContext:
-  fsGroup: 10001
+# -----------------------------------------------------------------------------
+# NetworkPolicy global toggle (per-service rules under services.<name>.networkPolicy)
+# When enabled, specialist services only accept ingress from the supervisor.
+# -----------------------------------------------------------------------------
+networkPolicy:
+  enabled: false
+  # label selector identifying the ingress controller namespace (for supervisor/mcp)
+  ingressNamespaceSelector: {}
+    # kubernetes.io/metadata.name: ingress-nginx
 
-## Container-level security context
-securityContext:
-  runAsNonRoot: true
-  runAsUser: 10001
-  readOnlyRootFilesystem: true
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-      - ALL
+# -----------------------------------------------------------------------------
+# ExternalSecret (External Secrets Operator → AWS Secrets Manager). OFF by default.
+# Each item becomes one ExternalSecret producing one K8s Secret consumed via envFrom.
+# -----------------------------------------------------------------------------
+externalSecrets:
+  enabled: false
+  # SecretStore / ClusterSecretStore reference
+  secretStore:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  refreshInterval: 1h
+  # Each secret: target K8s Secret name + remote keys → env var names.
+  secrets: []
+    # - name: aigent-squad-secrets
+    #   data:
+    #     - secretKey: INTERNAL_API_TOKEN
+    #       remoteRef: { key: aigent-squad/internal-api-token }
+    #     - secretKey: REDIS_PASSWORD
+    #       remoteRef: { key: aigent-squad/redis-password }
+    #     - secretKey: GITLAB_TOKEN
+    #       remoteRef: { key: aigent-squad/gitlab-token }
 
-## OpenTelemetry
-otel:
-  enabled: true
-  endpoint: "http://otel-collector.monitoring:4317"
-
-## Mandatory labels
-labels:
-  CostCenter: "Platform-Infrastructure"
-  Environment: "PRD"
+# Name overrides
+nameOverride: ""
+fullnameOverride: ""

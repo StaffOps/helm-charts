@@ -1,0 +1,160 @@
+## Distributed topology overlay (spec 05): supervisor + 5 specialist agents +
+## mcp-server, each its own Deployment/Service/ServiceAccount, KEDA-scaled,
+## NetworkPolicy-isolated, secrets via ExternalSecret.
+##
+##   helm template r charts/aigent-squad -f charts/aigent-squad/values-distributed.yaml
+##
+## This is a STARTING POINT — set real IRSA role ARNs, ingress host, ElastiCache
+## endpoint and SecretStore before applying to a cluster (prefer values-<env>.yaml).
+
+topology: distributed
+
+# Specialist services do not run the supervisor's in-process agents.
+# Each runs a single agent image; mountAgents loads its own config.
+services:
+  supervisor:
+    enabled: true
+    image: { repository: aigent-squad/supervisor, tag: "0.1.0" }
+    port: 8000
+    mountAgents: false      # routes to specialists over HTTP instead
+    expose: true
+    serviceAccount:
+      create: true
+      annotations: {}
+        # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/aigent-squad-supervisor
+    resources:
+      requests: { cpu: 200m, memory: 512Mi }
+      limits: { memory: 1Gi }
+    scaling:
+      keda: { enabled: true, minReplicas: 2, maxReplicas: 10, triggers: [] }
+    networkPolicy: { enabled: true, allowFrom: [] }
+
+  aws:
+    enabled: true
+    image: { repository: aigent-squad/aws-agent, tag: "0.1.0" }
+    port: 8001
+    mountAgents: true
+    expose: false
+    serviceAccount:
+      create: true
+      annotations: {}
+        # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/aigent-squad-aws
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 512Mi }
+    scaling:
+      keda: { enabled: true, minReplicas: 1, maxReplicas: 15, triggers: [] }
+    networkPolicy: { enabled: true, allowFrom: [] }
+
+  kubernetes:
+    enabled: true
+    image: { repository: aigent-squad/kubernetes-agent, tag: "0.1.0" }
+    port: 8002
+    mountAgents: true
+    expose: false
+    rbac: { readOnly: true }   # needs read-only K8s API access
+    serviceAccount: { create: true, annotations: {} }
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 512Mi }
+    scaling:
+      keda: { enabled: true, minReplicas: 1, maxReplicas: 10, triggers: [] }
+    networkPolicy: { enabled: true, allowFrom: [] }
+
+  finops:
+    enabled: true
+    image: { repository: aigent-squad/finops-agent, tag: "0.1.0" }
+    port: 8003
+    mountAgents: true
+    expose: false
+    serviceAccount:
+      create: true
+      annotations: {}
+        # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/aigent-squad-finops
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 512Mi }
+    scaling:
+      keda: { enabled: true, minReplicas: 1, maxReplicas: 5, triggers: [] }
+    networkPolicy: { enabled: true, allowFrom: [] }
+
+  devops:
+    enabled: true
+    image: { repository: aigent-squad/devops-agent, tag: "0.1.0" }
+    port: 8004
+    mountAgents: true
+    expose: false
+    serviceAccount: { create: true, annotations: {} }
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 512Mi }
+    scaling:
+      keda: { enabled: true, minReplicas: 1, maxReplicas: 5, triggers: [] }
+    networkPolicy: { enabled: true, allowFrom: [] }
+
+  observability:
+    enabled: true
+    image: { repository: aigent-squad/observability-agent, tag: "0.1.0" }
+    port: 8005
+    mountAgents: true
+    expose: false
+    serviceAccount: { create: true, annotations: {} }
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 512Mi }
+    scaling:
+      keda: { enabled: true, minReplicas: 2, maxReplicas: 8, triggers: [] }
+    networkPolicy: { enabled: true, allowFrom: [] }
+
+  mcp-server:
+    enabled: true
+    image: { repository: aigent-squad/mcp-server, tag: "0.1.0" }
+    port: 8006
+    mountAgents: false
+    expose: true               # facade for Kiro CLI
+    serviceAccount: { create: true, annotations: {} }
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 512Mi }
+    scaling:
+      keda: { enabled: true, minReplicas: 1, maxReplicas: 5, triggers: [] }
+    networkPolicy: { enabled: true, allowFrom: [] }
+
+# NetworkPolicy on: specialists accept ingress only from the supervisor.
+networkPolicy:
+  enabled: true
+  ingressNamespaceSelector:
+    kubernetes.io/metadata.name: ingress-nginx
+
+# Secrets from AWS Secrets Manager via External Secrets Operator.
+externalSecrets:
+  enabled: true
+  secretStore: { name: aws-secrets-manager, kind: ClusterSecretStore }
+  refreshInterval: 1h
+  secrets:
+    - name: aigent-squad-secrets
+      data:
+        - secretKey: INTERNAL_API_TOKEN
+          remoteRef: { key: aigent-squad/internal-api-token }
+        - secretKey: REDIS_PASSWORD
+          remoteRef: { key: aigent-squad/redis-password }
+        - secretKey: GITLAB_TOKEN
+          remoteRef: { key: aigent-squad/gitlab-token }
+        - secretKey: DOCS_PORTAL_TOKEN
+          remoteRef: { key: aigent-squad/docs-portal-token }
+
+# External entrypoint (only supervisor + mcp-server are exposed).
+ingress:
+  enabled: true
+  className: nginx
+  host: aigent-squad.bdc.app.br
+  tls: { enabled: true, secretName: aigent-squad-tls }
+  paths:
+    supervisor: /api/supervisor
+    mcp-server: /api/mcp
+
+# Managed ElastiCache endpoint (set per environment).
+redis:
+  host: ""        # e.g. aigent-squad.xxxx.ng.0001.use1.cache.amazonaws.com
+  ssl: true
+  inCluster: { enabled: false }

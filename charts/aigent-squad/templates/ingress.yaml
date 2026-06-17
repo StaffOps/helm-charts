@@ -1,0 +1,43 @@
+{{- /*
+Ingress — routes only services with expose: true (spec 05: only supervisor and
+mcp-server are externally reachable). Opt-in via ingress.enabled.
+*/ -}}
+{{- if .Values.ingress.enabled }}
+{{- $root := . -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "aigent-squad.fullname" . }}
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          {{- range $name, $svc := .Values.services }}
+          {{- if and $svc.enabled (dig "expose" false $svc) }}
+          {{- $ctx := dict "root" $root "name" $name }}
+          - path: {{ default (printf "/%s" $name) (index $root.Values.ingress.paths $name) }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "aigent-squad.serviceFullname" $ctx }}
+                port:
+                  number: {{ $svc.port }}
+          {{- end }}
+          {{- end }}
+{{- end }}

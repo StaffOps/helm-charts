@@ -1,0 +1,36 @@
+AIgent-Squad installed — release {{ .Release.Name }} (namespace {{ .Release.Namespace }}).
+
+Topology: {{ .Values.topology }}
+
+Enabled services:
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.enabled }}
+  - {{ $name }} (port {{ $svc.port }}){{ if $svc.expose }} [exposed]{{ end }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+External entrypoint: http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}
+{{- else }}
+
+No Ingress enabled. Reach the supervisor in-cluster:
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "aigent-squad.fullname" . }}-supervisor {{ (.Values.services.supervisor).port }}:{{ (.Values.services.supervisor).port }}
+  curl http://localhost:{{ (.Values.services.supervisor).port }}{{ .Values.global.probes.readiness.path }}
+{{- end }}
+
+{{- if not .Values.externalSecrets.enabled }}
+
+NOTE: externalSecrets is disabled. For PRD/HML/BTC, enable it so secrets
+(INTERNAL_API_TOKEN, REDIS_PASSWORD, GITLAB_TOKEN, SLACK_*, DOCS_PORTAL_TOKEN)
+come from AWS Secrets Manager via the External Secrets Operator — never values.
+{{- end }}
+
+{{- if and (eq .Values.topology "inProcess") (gt (len .Values.services) 1) }}
+
+NOTE: topology is inProcess but multiple services are enabled. In inProcess mode
+only the supervisor is needed (it runs all agents from config). Use
+values-distributed.yaml for the per-service topology.
+{{- end }}
+
+Docs: https://github.com/karlipegomes/staffops-aigent-squad/tree/dev/.kiro/specs/05-helm-chart

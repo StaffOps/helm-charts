@@ -1,15 +1,22 @@
+{{- $root := . -}}
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.enabled }}
+{{- $ctx := dict "root" $root "name" $name }}
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "aigent-squad.fullname" . }}
+  name: {{ include "aigent-squad.serviceFullname" $ctx }}
   labels:
-    {{- include "aigent-squad.labels" . | nindent 4 }}
+    {{- include "aigent-squad.serviceLabels" $ctx | nindent 4 }}
 spec:
   type: ClusterIP
   ports:
-    - port: {{ .Values.supervisor.port }}
+    - name: http
+      port: {{ $svc.port }}
       targetPort: http
       protocol: TCP
-      name: http
   selector:
-    {{- include "aigent-squad.selectorLabels" . | nindent 4 }}
+    {{- include "aigent-squad.selectorLabels" $ctx | nindent 4 }}
+{{- end }}
+{{- end }}

@@ -1,12 +1,14 @@
 {{- if eq .Values.agentsSource.type "configmap" }}
+{{- $root := . }}
 {{- range .Values.agents }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "aigent-squad.fullname" $ }}-agent-{{ .name }}
+  name: {{ printf "%s-agent-%s" (include "aigent-squad.fullname" $root) .name }}
   labels:
-    {{- include "aigent-squad.labels" $ | nindent 4 }}
+    {{- include "aigent-squad.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: agent-config
 data:
   agent.yaml: |
     {{- .config | nindent 4 }}

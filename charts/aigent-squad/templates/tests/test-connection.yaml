@@ -6,9 +6,19 @@ metadata:
     {{- include "aigent-squad.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
+  restartPolicy: Never
   containers:
     - name: curl
-      image: curlimages/curl:latest
-      command: ['curl', '--fail', '-s', 'http://{{ include "aigent-squad.fullname" . }}:{{ .Values.supervisor.port }}/health']
-  restartPolicy: Never
+      image: curlimages/curl:8.6.0
+      command: ["sh", "-c"]
+      args:
+        - |
+          set -e
+          SVC="{{ include "aigent-squad.fullname" . }}-supervisor"
+          PORT="{{ (.Values.services.supervisor).port }}"
+          echo "Probing ${SVC}:${PORT}{{ .Values.global.probes.readiness.path }} ..."
+          curl -fsS "http://${SVC}:${PORT}{{ .Values.global.probes.readiness.path }}"
+          echo
+          echo "smoke test passed"

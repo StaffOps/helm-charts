@@ -1,0 +1,47 @@
+{{- /*
+NetworkPolicy (spec 05): specialist services accept ingress ONLY from the
+supervisor; exposed services (supervisor, mcp-server) also accept ingress from
+the ingress controller namespace. Opt-in via networkPolicy.enabled.
+*/ -}}
+{{- if .Values.networkPolicy.enabled }}
+{{- $root := . -}}
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.enabled }}
+{{- $ctx := dict "root" $root "name" $name }}
+{{- $expose := dig "expose" false $svc }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "aigent-squad.serviceFullname" $ctx }}
+  labels:
+    {{- include "aigent-squad.serviceLabels" $ctx | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "aigent-squad.selectorLabels" $ctx | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- if and $expose $root.Values.networkPolicy.ingressNamespaceSelector }}
+        # External traffic via the ingress controller namespace.
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml $root.Values.networkPolicy.ingressNamespaceSelector | nindent 14 }}
+        {{- end }}
+        {{- if ne $name "supervisor" }}
+        # Specialist/mcp services accept traffic from the supervisor pods.
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: supervisor
+        {{- end }}
+        {{- range (dig "networkPolicy" "allowFrom" list $svc) }}
+        - {{- toYaml . | nindent 10 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ $svc.port }}
+{{- end }}
+{{- end }}
+{{- end }}

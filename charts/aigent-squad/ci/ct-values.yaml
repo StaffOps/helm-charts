@@ -1,18 +1,42 @@
-## Minimal values for chart-testing (ct lint / ct install)
-image:
-  repository: harbor.bdc.app.br/aigent-squad/supervisor
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
+## Minimal values for chart-testing (ct lint / ct install on a bare kind cluster).
+## No CRDs, no external deps — exercises the default inProcess topology.
 
-supervisor:
-  replicas: 1
-  port: 8000
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      memory: 512Mi
+topology: inProcess
+
+global:
+  image:
+    registry: harbor.bdc.app.br
+  otel:
+    enabled: false
+  env:
+    AWS_REGION: "us-east-1"
+    ENVIRONMENT: "DEV"
+
+services:
+  supervisor:
+    enabled: true
+    image:
+      repository: aigent-squad/supervisor
+      tag: "0.1.0"
+    port: 8000
+    mountAgents: true
+    expose: false
+    serviceAccount:
+      create: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 256Mi
+    scaling:
+      replicas: 1
+      keda:
+        enabled: false
+    rollout:
+      enabled: false
+    networkPolicy:
+      enabled: false
 
 agentsSource:
   type: configmap
@@ -21,19 +45,21 @@ agents:
   - name: test-agent
     config: |
       name: test-agent
-      description: Test agent for ct
-      model: bedrock/anthropic.claude-sonnet-4-20250514-v1:0
-      tools: []
+      description: Test agent for chart-testing
+      datasources: []
     prompt: |
       You are a test agent.
 
 redis:
+  host: ""
+  inCluster:
+    enabled: false
+
+externalSecrets:
   enabled: false
 
-env:
-  AWS_REGION: "us-east-1"
-  ENVIRONMENT: "DEV"
-
-otel:
+ingress:
   enabled: false
-  endpoint: ""
+
+networkPolicy:
+  enabled: false

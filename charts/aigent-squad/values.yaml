@@ -211,18 +211,39 @@ services:
       allowFrom: []
 
 # -----------------------------------------------------------------------------
-# Ingress — only `expose: true` services are routed. OFF by default.
+# Routing — how exposed services (expose: true) are reached from outside.
+# Provider-agnostic so the chart deploys on ANY cluster:
+#   none       → no external routing (port-forward / in-cluster only)
+#   ingress    → networking.k8s.io/v1 Ingress (nginx, traefik, ALB, etc.)
+#   gatewayapi → gateway.networking.k8s.io HTTPRoute (Istio, Cilium, etc.)
 # -----------------------------------------------------------------------------
-ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-  host: ""            # e.g. aigent-squad.bdc.app.br
+routing:
+  type: none           # none | ingress | gatewayapi
+  host: ""             # e.g. aigent-squad.example.com
+  # Path prefix per exposed service (defaults to /<service> when unset).
+  paths: {}
+    # supervisor: /api/supervisor
+    # mcp-server: /api/mcp
   tls:
     enabled: false
-    secretName: ""
-  # path prefix per exposed service (defaults to /<service>)
-  paths: {}
+    secretName: ""     # Ingress: TLS secret. GatewayAPI: usually handled at the Gateway.
+
+  # --- Ingress-specific (type: ingress) ---
+  ingress:
+    className: ""       # e.g. nginx, alb, traefik
+    annotations: {}
+      # cert-manager.io/cluster-issuer: letsencrypt
+      # alb.ingress.kubernetes.io/scheme: internet-facing
+
+  # --- Gateway API-specific (type: gatewayapi) ---
+  gatewayapi:
+    # Reference to an existing Gateway (this chart does NOT create the Gateway).
+    parentRef:
+      name: ""          # e.g. istio
+      namespace: ""     # e.g. istio-gateway (empty → same namespace)
+      sectionName: ""   # optional listener section name
+    annotations: {}
+    pathType: PathPrefix  # PathPrefix | Exact
 
 # -----------------------------------------------------------------------------
 # NetworkPolicy global toggle (per-service rules under services.<name>.networkPolicy)

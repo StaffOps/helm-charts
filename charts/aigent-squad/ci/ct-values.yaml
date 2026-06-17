@@ -58,8 +58,8 @@ redis:
 externalSecrets:
   enabled: false
 
-ingress:
-  enabled: false
+routing:
+  type: none
 
 networkPolicy:
   enabled: false

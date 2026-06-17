@@ -9,12 +9,12 @@ Enabled services:
 {{- end }}
 {{- end }}
 
-{{- if .Values.ingress.enabled }}
+{{- if ne .Values.routing.type "none" }}
 
-External entrypoint: http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}
+External entrypoint ({{ .Values.routing.type }}): http{{ if .Values.routing.tls.enabled }}s{{ end }}://{{ .Values.routing.host }}
 {{- else }}
 
-No Ingress enabled. Reach the supervisor in-cluster:
+No external routing enabled (routing.type=none). Reach the supervisor in-cluster:
   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "aigent-squad.fullname" . }}-supervisor {{ (.Values.services.supervisor).port }}:{{ (.Values.services.supervisor).port }}
   curl http://localhost:{{ (.Values.services.supervisor).port }}{{ .Values.global.probes.readiness.path }}
 {{- end }}

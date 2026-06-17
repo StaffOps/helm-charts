@@ -144,14 +144,24 @@ externalSecrets:
           remoteRef: { key: aigent-squad/docs-portal-token }
 
 # External entrypoint (only supervisor + mcp-server are exposed).
-ingress:
-  enabled: true
-  className: nginx
-  host: aigent-squad.bdc.app.br
-  tls: { enabled: true, secretName: aigent-squad-tls }
+# This example uses Gateway API (Istio). Switch routing.type to "ingress"
+# for an nginx/ALB Ingress, or "none" to disable external routing.
+routing:
+  type: gatewayapi          # none | ingress | gatewayapi
+  host: aigent-squad.example.com
   paths:
     supervisor: /api/supervisor
     mcp-server: /api/mcp
+  tls:
+    enabled: false          # GatewayAPI: TLS usually terminated at the Gateway
+  gatewayapi:
+    parentRef:
+      name: istio
+      namespace: istio-gateway
+  # --- Ingress alternative (set routing.type: ingress to use) ---
+  ingress:
+    className: nginx
+    annotations: {}
 
 # Managed ElastiCache endpoint (set per environment).
 redis:

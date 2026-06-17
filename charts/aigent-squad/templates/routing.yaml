@@ -1,0 +1,91 @@
+{{- /*
+External routing for services with `expose: true`. Provider-agnostic:
+  routing.type = none       → nothing rendered (port-forward / in-cluster)
+  routing.type = ingress    → networking.k8s.io/v1 Ingress
+  routing.type = gatewayapi → gateway.networking.k8s.io/v1 HTTPRoute
+
+Only services with `expose: true` are routed (spec 05: supervisor + mcp only).
+*/ -}}
+{{- $root := . -}}
+{{- $r := .Values.routing -}}
+
+{{- if eq $r.type "ingress" }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "aigent-squad.fullname" . }}
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+  {{- with $r.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $r.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if $r.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ $r.host | quote }}
+      secretName: {{ $r.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ $r.host | quote }}
+      http:
+        paths:
+          {{- range $name, $svc := .Values.services }}
+          {{- if and $svc.enabled (dig "expose" false $svc) }}
+          {{- $ctx := dict "root" $root "name" $name }}
+          - path: {{ default (printf "/%s" $name) (index $r.paths $name) }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "aigent-squad.serviceFullname" $ctx }}
+                port:
+                  number: {{ $svc.port }}
+          {{- end }}
+          {{- end }}
+
+{{- else if eq $r.type "gatewayapi" }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "aigent-squad.fullname" . }}
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+  {{- with $r.gatewayapi.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ $r.gatewayapi.parentRef.name }}
+      {{- with $r.gatewayapi.parentRef.namespace }}
+      namespace: {{ . }}
+      {{- end }}
+      {{- with $r.gatewayapi.parentRef.sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+  {{- with $r.host }}
+  hostnames:
+    - {{ . | quote }}
+  {{- end }}
+  rules:
+    {{- range $name, $svc := .Values.services }}
+    {{- if and $svc.enabled (dig "expose" false $svc) }}
+    {{- $ctx := dict "root" $root "name" $name }}
+    - matches:
+        - path:
+            type: {{ $r.gatewayapi.pathType }}
+            value: {{ default (printf "/%s" $name) (index $r.paths $name) }}
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ include "aigent-squad.serviceFullname" $ctx }}
+          port: {{ $svc.port }}
+    {{- end }}
+    {{- end }}
+{{- end }}

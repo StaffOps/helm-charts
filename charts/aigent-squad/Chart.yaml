@@ -5,7 +5,7 @@ description: |
   Agents are defined by YAML config + prompt, not code. Add agents
   via values.yaml without rebuilding the image.
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: "0.1.0"
 kubeVersion: ">=1.24.0-0"
 home: https://github.com/karlipegomes/staffops-aigent-squad

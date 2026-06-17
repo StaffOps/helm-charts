@@ -72,6 +72,38 @@ services:
     networkPolicy: { enabled: true, allowFrom: [] }
 ```
 
+## Routing (provider-agnostic)
+
+External access to `expose: true` services is provider-agnostic so the chart
+deploys on **any** cluster — pick a provider via `routing.type`:
+
+| `routing.type` | Renders | Use when |
+|----------------|---------|----------|
+| `none` (default) | nothing | port-forward / in-cluster only |
+| `ingress` | `networking.k8s.io/v1` Ingress | nginx, traefik, ALB, etc. |
+| `gatewayapi` | `gateway.networking.k8s.io/v1` HTTPRoute | Istio, Cilium, any Gateway API impl |
+
+```yaml
+# Ingress (nginx)
+routing:
+  type: ingress
+  host: aigent-squad.example.com
+  tls: { enabled: true, secretName: aigent-squad-tls }
+  ingress:
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+
+# Gateway API (Istio) — references an EXISTING Gateway (chart does not create it)
+routing:
+  type: gatewayapi
+  host: aigent-squad.example.com
+  gatewayapi:
+    parentRef: { name: istio, namespace: istio-gateway }
+```
+
+Path per exposed service is `/<service>` by default; override via `routing.paths`.
+
 ## Key values
 
 | Key | Default | Description |
@@ -88,7 +120,7 @@ services:
 | `redis.host` | `""` | Managed ElastiCache endpoint. |
 | `redis.inCluster.enabled` | `false` | DEV-only in-cluster Redis. |
 | `dynamodb.sessionsTable` | `agent-sessions` | DynamoDB table name. |
-| `ingress.enabled` | `false` | Routes only `expose: true` services. |
+| `routing.type` | `none` | External routing: `none` \| `ingress` \| `gatewayapi`. |
 | `networkPolicy.enabled` | `false` | Specialists accept ingress only from supervisor. |
 | `externalSecrets.enabled` | `false` | Secrets via External Secrets Operator → AWS SM. |
 

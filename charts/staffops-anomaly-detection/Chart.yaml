@@ -18,12 +18,12 @@ appVersion: "0.7.0"
 
 kubeVersion: ">=1.24.0-0"
 
-home: https://github.com/karlipegomes/staffops-anomaly-detection
+home: https://staffops.github.io/anomaly-detection/
 sources:
-  - https://github.com/karlipegomes/staffops-anomaly-detection
-  - https://github.com/karlipegomes/helm-charts
+  - https://github.com/StaffOps/staffops-anomaly-detection
+  - https://github.com/StaffOps/helm-charts
 
-icon: https://raw.githubusercontent.com/karlipegomes/staffops-anomaly-detection/main/docs/assets/icon.png
+icon: https://avatars.githubusercontent.com/u/66139348?s=200&v=4
 
 keywords:
   - anomaly-detection
@@ -35,8 +35,8 @@ keywords:
   - machine-learning
 
 maintainers:
-  - name: karlipegomes
-    url: https://github.com/karlipegomes
+  - name: StaffOps Contributors
+    url: https://github.com/StaffOps
 
 annotations:
   artifacthub.io/category: monitoring-logging

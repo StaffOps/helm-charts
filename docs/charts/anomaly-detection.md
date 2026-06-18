@@ -1,8 +1,8 @@
-# staffops-anomaly-detection
+# anomaly-detection
 
-**Chart:** `staffops/staffops-anomaly-detection`  
+**Chart:** `staffops/anomaly-detection`  
 **Version:** `0.1.0` · **App Version:** `0.7.0`  
-**Source:** [StaffOps/helm-charts](https://github.com/StaffOps/helm-charts/tree/main/charts/staffops-anomaly-detection)
+**Source:** [StaffOps/helm-charts](https://github.com/StaffOps/helm-charts/tree/main/charts/anomaly-detection)
 
 Distributed anomaly detection for Kubernetes workloads. Correlates metrics (VictoriaMetrics), logs (Loki), and K8s events; fires enriched alerts to Alertmanager. Ships a Go controller with HA leader election, stateless gRPC workers, a Python ML service (Prophet + Isolation Forest), and an optional in-cluster Redis for baselines.
 
@@ -13,7 +13,7 @@ Distributed anomaly detection for Kubernetes workloads. Correlates metrics (Vict
 ```bash
 helm repo add staffops https://staffops.github.io/helm-charts/
 helm repo update
-helm install ad staffops/staffops-anomaly-detection \
+helm install ad staffops/anomaly-detection \
   --namespace monitoring --create-namespace \
   --set clusterName=my-cluster \
   --set datasources.victoriametrics.url=https://vm.example.com/select/0/prometheus \
@@ -279,7 +279,7 @@ podDisruptionBudget:
 ```
 
 ```bash
-helm upgrade --install ad staffops/staffops-anomaly-detection \
+helm upgrade --install ad staffops/anomaly-detection \
   --namespace monitoring --create-namespace \
   -f values-prod.yaml
 ```
@@ -290,7 +290,7 @@ helm upgrade --install ad staffops/staffops-anomaly-detection \
 
 ```bash
 helm repo update
-helm upgrade ad staffops/staffops-anomaly-detection \
+helm upgrade ad staffops/anomaly-detection \
   --namespace monitoring \
   -f values-prod.yaml
 ```
@@ -339,7 +339,7 @@ The worker Service is headless (`clusterIP: None`). The controller uses the gRPC
 
 ```bash
 kubectl run -it --rm debug --image=busybox --restart=Never -- \
-  nslookup <release>-staffops-anomaly-detection-worker.monitoring.svc.cluster.local
+  nslookup <release>-anomaly-detection-worker.monitoring.svc.cluster.local
 ```
 
 ### ML service crashes on startup

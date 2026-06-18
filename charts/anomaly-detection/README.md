@@ -1,4 +1,4 @@
-# staffops-anomaly-detection
+# anomaly-detection
 
 ![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square)
 ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
@@ -14,7 +14,7 @@ Distributed anomaly detection for Kubernetes clusters. Combines adaptive statist
 helm repo add staffops https://staffops.github.io/helm-charts/
 helm repo update
 
-helm install ad staffops/staffops-anomaly-detection \
+helm install ad staffops/anomaly-detection \
   --namespace monitoring \
   --create-namespace \
   --set datasources.victoriametrics.url=https://vm.example.com/select/0/prometheus \
@@ -56,7 +56,7 @@ graph LR
 ### Minimum installation
 
 ```bash
-helm install ad staffops/staffops-anomaly-detection \
+helm install ad staffops/anomaly-detection \
   --namespace monitoring \
   --create-namespace \
   --set clusterName=prd-eks \
@@ -112,7 +112,7 @@ links:
 ```
 
 ```bash
-helm install ad staffops/staffops-anomaly-detection \
+helm install ad staffops/anomaly-detection \
   --namespace monitoring -f values-prd.yaml
 ```
 
@@ -120,7 +120,7 @@ helm install ad staffops/staffops-anomaly-detection \
 
 ```bash
 helm repo update
-helm upgrade ad staffops/staffops-anomaly-detection -n monitoring -f values-prd.yaml
+helm upgrade ad staffops/anomaly-detection -n monitoring -f values-prd.yaml
 ```
 
 Upgrades preserve baselines if `redis.persistence.enabled=true` or external Redis is used. Otherwise, baselines warm up again from scratch (~30 minutes at 30s tick interval).
@@ -195,7 +195,7 @@ helm uninstall ad -n monitoring
 If `redis.enabled=true` and `redis.persistence.enabled=true`, the PVC remains. Delete manually:
 
 ```bash
-kubectl delete pvc -n monitoring -l app.kubernetes.io/name=staffops-anomaly-detection
+kubectl delete pvc -n monitoring -l app.kubernetes.io/name=anomaly-detection
 ```
 
 ## Validation
@@ -204,14 +204,14 @@ After install, verify the stack:
 
 ```bash
 # Pods running
-kubectl get pods -n monitoring -l app.kubernetes.io/name=staffops-anomaly-detection
+kubectl get pods -n monitoring -l app.kubernetes.io/name=anomaly-detection
 
 # Controller readiness probes
-kubectl exec -n monitoring deploy/ad-staffops-anomaly-detection-controller -- \
+kubectl exec -n monitoring deploy/ad-anomaly-detection-controller -- \
   wget -qO- http://localhost:8080/readyz
 
 # Metrics exposed
-kubectl port-forward -n monitoring svc/ad-staffops-anomaly-detection-controller 8080:8080 &
+kubectl port-forward -n monitoring svc/ad-anomaly-detection-controller 8080:8080 &
 curl -s localhost:8080/metrics | grep staffops_ad_controller_cycles_total
 ```
 
@@ -227,5 +227,5 @@ curl -s localhost:8080/metrics | grep staffops_ad_controller_cycles_total
 ## Source links
 
 - App source: <https://github.com/StaffOps/staffops-anomaly-detection>
-- Chart source: <https://github.com/StaffOps/helm-charts/tree/main/charts/staffops-anomaly-detection>
+- Chart source: <https://github.com/StaffOps/helm-charts/tree/main/charts/anomaly-detection>
 - Documentation: <https://github.com/StaffOps/staffops-anomaly-detection/tree/main/docs>

@@ -35,7 +35,7 @@ helm-charts/
 │   │   ├── ci/
 │   │   │   └── ct-values.yaml  # Values used during `ct install`
 │   │   └── templates/
-│   └── staffops-anomaly-detection/
+│   └── anomaly-detection/
 │       ├── Chart.yaml
 │       ├── values.yaml
 │       ├── ci/

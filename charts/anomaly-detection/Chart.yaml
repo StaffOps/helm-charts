@@ -1,5 +1,5 @@
 apiVersion: v2
-name: staffops-anomaly-detection
+name: anomaly-detection
 description: |
   Distributed anomaly detection for Kubernetes clusters. Combines adaptive
   statistical detection (Go controller + workers) with ML-based forecasting
@@ -12,7 +12,7 @@ type: application
 # Bump on every chart change. Keep MAJOR/MINOR aligned with breaking values.yaml changes.
 version: 0.1.0
 
-# appVersion tracks the upstream staffops-anomaly-detection controller release.
+# appVersion tracks the upstream anomaly-detection controller release.
 # Bump when the default container image tag changes.
 appVersion: "0.7.0"
 
@@ -43,4 +43,4 @@ annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/changes: |
     - kind: added
-      description: Initial chart release for staffops-anomaly-detection v0.7.0
+      description: Initial chart release for anomaly-detection v0.7.0

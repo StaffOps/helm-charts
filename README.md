@@ -7,7 +7,7 @@ Helm charts for the [StaffOps](https://github.com/StaffOps) suite of open-source
 | Chart | Version | App Version | Description |
 |-------|---------|-------------|-------------|
 | [aigent-squad](./charts/aigent-squad) | ![chart-version](https://img.shields.io/badge/chart-0.6.0-blue) | ![app-version](https://img.shields.io/badge/app-0.1.0-green) | Config-driven multi-agent platform for AWS/K8s operations (supervisor + specialist agents, Bedrock-direct) |
-| [staffops-anomaly-detection](./charts/staffops-anomaly-detection) | ![chart-version](https://img.shields.io/badge/chart-0.1.0-blue) | ![app-version](https://img.shields.io/badge/app-0.7.0-green) | Distributed anomaly detection for Kubernetes (Go controller + workers + Python ML) |
+| [anomaly-detection](./charts/anomaly-detection) | ![chart-version](https://img.shields.io/badge/chart-0.1.0-blue) | ![app-version](https://img.shields.io/badge/app-0.7.0-green) | Distributed anomaly detection for Kubernetes (Go controller + workers + Python ML) |
 
 ## Usage
 
@@ -26,13 +26,13 @@ helm search repo staffops
 
 ```
 NAME                                    CHART VERSION   APP VERSION     DESCRIPTION
-staffops/staffops-anomaly-detection     0.1.0           0.7.0           Distributed anomaly detection for Kubernetes
+staffops/anomaly-detection     0.1.0           0.7.0           Distributed anomaly detection for Kubernetes
 ```
 
 ### 3. Install a chart
 
 ```bash
-helm install my-anomaly-detection staffops/staffops-anomaly-detection \
+helm install my-anomaly-detection staffops/anomaly-detection \
   --namespace monitoring \
   --create-namespace \
   --set datasources.victoriametrics.url=https://vm.example.com \
@@ -42,7 +42,7 @@ helm install my-anomaly-detection staffops/staffops-anomaly-detection \
 
 For full configuration, see each chart's README:
 
-- [staffops-anomaly-detection README](./charts/staffops-anomaly-detection/README.md)
+- [anomaly-detection README](./charts/anomaly-detection/README.md)
 
 ## Repository Layout
 
@@ -50,7 +50,7 @@ For full configuration, see each chart's README:
 helm-charts/
 ├── charts/
 │   ├── aigent-squad/                  # Multi-agent platform (supervisor + agents)
-│   └── staffops-anomaly-detection/    # Anomaly detection stack
+│   └── anomaly-detection/    # Anomaly detection stack
 ├── .github/
 │   └── workflows/
 │       ├── lint-test.yaml             # Validates PRs (helm lint, ct lint, ct install)
@@ -66,10 +66,10 @@ The released charts are served from the [`gh-pages` branch](https://github.com/S
 
 ```bash
 # Lint a chart
-helm lint charts/staffops-anomaly-detection
+helm lint charts/anomaly-detection
 
 # Render templates with default values
-helm template my-release charts/staffops-anomaly-detection
+helm template my-release charts/anomaly-detection
 
 # Run chart-testing locally (matches CI)
 docker run --rm -v $(pwd):/data quay.io/helmpack/chart-testing:latest \

@@ -6,12 +6,12 @@
 
 Distributed anomaly detection for Kubernetes clusters. Combines adaptive statistical detection (Go controller + workers) with ML-based forecasting and multivariate analysis (Python).
 
-**Source application**: [karlipegomes/staffops-anomaly-detection](https://github.com/karlipegomes/staffops-anomaly-detection)
+**Source application**: [StaffOps/staffops-anomaly-detection](https://github.com/StaffOps/staffops-anomaly-detection)
 
 ## TL;DR
 
 ```bash
-helm repo add staffops https://karlipegomes.github.io/helm-charts/
+helm repo add staffops https://staffops.github.io/helm-charts/
 helm repo update
 
 helm install ad staffops/staffops-anomaly-detection \
@@ -226,6 +226,6 @@ curl -s localhost:8080/metrics | grep staffops_ad_controller_cycles_total
 
 ## Source links
 
-- App source: <https://github.com/karlipegomes/staffops-anomaly-detection>
-- Chart source: <https://github.com/karlipegomes/helm-charts/tree/main/charts/staffops-anomaly-detection>
-- Documentation: <https://github.com/karlipegomes/staffops-anomaly-detection/tree/main/docs>
+- App source: <https://github.com/StaffOps/staffops-anomaly-detection>
+- Chart source: <https://github.com/StaffOps/helm-charts/tree/main/charts/staffops-anomaly-detection>
+- Documentation: <https://github.com/StaffOps/staffops-anomaly-detection/tree/main/docs>

@@ -1,12 +1,12 @@
 # Helm Charts
 
-Helm charts for the [StaffOps](https://github.com/karlipegomes) suite of open-source Kubernetes operational tooling.
+Helm charts for the [StaffOps](https://github.com/StaffOps) suite of open-source Kubernetes operational tooling.
 
 ## Charts
 
 | Chart | Version | App Version | Description |
 |-------|---------|-------------|-------------|
-| [aigent-squad](./charts/aigent-squad) | ![chart-version](https://img.shields.io/badge/chart-0.4.0-blue) | ![app-version](https://img.shields.io/badge/app-0.1.0-green) | Config-driven multi-agent platform for AWS/K8s operations (supervisor + specialist agents, Bedrock-direct) |
+| [aigent-squad](./charts/aigent-squad) | ![chart-version](https://img.shields.io/badge/chart-0.6.0-blue) | ![app-version](https://img.shields.io/badge/app-0.1.0-green) | Config-driven multi-agent platform for AWS/K8s operations (supervisor + specialist agents, Bedrock-direct) |
 | [staffops-anomaly-detection](./charts/staffops-anomaly-detection) | ![chart-version](https://img.shields.io/badge/chart-0.1.0-blue) | ![app-version](https://img.shields.io/badge/app-0.7.0-green) | Distributed anomaly detection for Kubernetes (Go controller + workers + Python ML) |
 
 ## Usage
@@ -14,7 +14,7 @@ Helm charts for the [StaffOps](https://github.com/karlipegomes) suite of open-so
 ### 1. Add the Helm repository
 
 ```bash
-helm repo add staffops https://karlipegomes.github.io/helm-charts/
+helm repo add staffops https://staffops.github.io/helm-charts/
 helm repo update
 ```
 
@@ -58,7 +58,7 @@ helm-charts/
 └── README.md                          # This file
 ```
 
-The released charts are served from the [`gh-pages` branch](https://github.com/karlipegomes/helm-charts/tree/gh-pages), built automatically by [chart-releaser-action](https://github.com/helm/chart-releaser-action).
+The released charts are served from the [`gh-pages` branch](https://github.com/StaffOps/helm-charts/tree/gh-pages), built automatically by [chart-releaser-action](https://github.com/helm/chart-releaser-action).
 
 ## Contributing
 

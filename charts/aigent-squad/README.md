@@ -144,7 +144,7 @@ Path per exposed service is `/<service>` by default; override via `routing.paths
 | Key | Default | Description |
 |-----|---------|-------------|
 | `topology` | `inProcess` | `inProcess` or `distributed` (intent flag). |
-| `global.image.registry` | `harbor.bdc.app.br` | Registry prefix (Kyverno may still rewrite). |
+| `global.image.registry` | `""` | Registry prefix; empty = Docker Hub (`karlipegomes/aigent-squad`). |
 | `global.env` | region/model/env/log | Non-sensitive shared env (12-factor III). |
 | `global.otel.enabled` / `.endpoint` | `true` / collector | OTel export (App→Collector→Backend). |
 | `global.labels` | CostCenter, Environment | Mandatory Kyverno labels. |

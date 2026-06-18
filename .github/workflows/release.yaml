@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'charts/**'
+  workflow_dispatch:
 
 permissions:
   contents: write   # for chart-releaser to push to gh-pages and create releases

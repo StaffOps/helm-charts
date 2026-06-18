@@ -34,8 +34,8 @@ helm install aigent-squad ./charts/aigent-squad \
   --set redis.host=my-elasticache.cache.amazonaws.com
 ```
 
-For PRD/HML/BTC, supply a `values-<env>.yaml` with real IRSA role ARNs, the
-ingress host, the ElastiCache endpoint, and the SecretStore. Deploy via ArgoCD.
+For production, override IRSA role ARNs, the ingress host, the ElastiCache
+endpoint, and the SecretStore via `--set` or a custom values file. Deploy via ArgoCD.
 
 ## Topology selection
 
@@ -77,9 +77,9 @@ services:
     networkPolicy: { enabled: true, allowFrom: [] }
 ```
 
-## Workload & autoscaling (provider-agnostic)
+## Workload & autoscaling
 
-Native Kubernetes workloads only — **no Argo Rollout**, no vendor coupling.
+Native Kubernetes workloads only — **no Argo Rollout**.
 
 | Setting | Values | Notes |
 |---------|--------|-------|
@@ -101,10 +101,9 @@ workload:
       spec: { accessModes: [ReadWriteOnce], resources: { requests: { storage: 1Gi } } }
 ```
 
-## Routing (provider-agnostic)
+## Routing
 
-External access to `expose: true` services is provider-agnostic so the chart
-deploys on **any** cluster — pick a provider via `routing.type`:
+External access to `expose: true` services — pick the type via `routing.type`:
 
 | `routing.type` | Renders | Use when |
 |----------------|---------|----------|

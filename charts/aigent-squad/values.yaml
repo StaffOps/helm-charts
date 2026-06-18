@@ -160,7 +160,7 @@ agents:
 
 # -----------------------------------------------------------------------------
 # Services map. Each key renders a workload (Deployment or StatefulSet) +
-# Service + ServiceAccount, with provider-agnostic autoscaling (none/HPA/KEDA).
+# Service + ServiceAccount. Autoscaling: none, HPA, or KEDA.
 # In `inProcess` topology only `supervisor` is used. In `distributed` the
 # specialist + mcp-server entries are enabled (see values-distributed.yaml).
 # -----------------------------------------------------------------------------
@@ -202,7 +202,7 @@ services:
       volumeClaimTemplates: []            # standard PVC templates
     scaling:
       replicas: 1
-      # Autoscaling is provider-agnostic: pick none, HPA, or KEDA.
+      # Autoscaling: pick none, HPA, or KEDA.
       autoscaling:
         kind: none             # none | hpa | keda
         minReplicas: 1
@@ -220,7 +220,7 @@ services:
 
 # -----------------------------------------------------------------------------
 # Routing — how exposed services (expose: true) are reached from outside.
-# Provider-agnostic so the chart deploys on ANY cluster:
+# External routing — pick the type that matches your cluster:
 #   none       → no external routing (port-forward / in-cluster only)
 #   ingress    → networking.k8s.io/v1 Ingress (nginx, traefik, ALB, etc.)
 #   gatewayapi → gateway.networking.k8s.io HTTPRoute (Istio, Cilium, etc.)

@@ -1,6 +1,5 @@
 {{- /*
-Provider-agnostic autoscaling per service. Pick via services.<name>.scaling
-.autoscaling.kind:
+Autoscaling per service. Pick via services.<name>.scaling.autoscaling.kind:
   none → nothing rendered (uses scaling.replicas)
   hpa  → autoscaling/v2 HorizontalPodAutoscaler (CPU, optional memory)
   keda → keda.sh/v1alpha1 ScaledObject (needs the KEDA CRDs)

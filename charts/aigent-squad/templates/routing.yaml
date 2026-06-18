@@ -1,5 +1,5 @@
 {{- /*
-External routing for services with `expose: true`. Provider-agnostic:
+External routing for services with `expose: true`.
   routing.type = none       → nothing rendered (port-forward / in-cluster)
   routing.type = ingress    → networking.k8s.io/v1 Ingress
   routing.type = gatewayapi → gateway.networking.k8s.io/v1 HTTPRoute

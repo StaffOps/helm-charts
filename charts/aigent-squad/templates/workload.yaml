@@ -2,8 +2,7 @@
 Renders one workload per enabled service: a Deployment (default) or a
 StatefulSet when services.<name>.workload.kind == "StatefulSet".
 
-No Argo Rollout — this chart is provider-agnostic and uses native Kubernetes
-workloads only. Replica count is owned by the autoscaler when scaling.autoscaling
+Native Kubernetes workloads only — no Argo Rollout. Replica count is owned by the autoscaler when scaling.autoscaling
 .kind is hpa/keda, so `replicas` is omitted in that case.
 
 The services map is user-extensible: every per-service field is read with a safe

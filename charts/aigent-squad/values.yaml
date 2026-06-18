@@ -22,9 +22,9 @@ topology: inProcess
 # -----------------------------------------------------------------------------
 global:
   image:
-    # Images are pulled through the Harbor proxy. Kyverno mutates the registry
-    # automatically — do NOT prefix manually in production (see k8s-best-practices).
-    registry: harbor.bdc.app.br
+    # Leave registry empty to use the full repository path as-is (Docker Hub).
+    # Set to an internal registry/proxy if needed (e.g. harbor.example.com).
+    registry: ""
     pullPolicy: IfNotPresent
 
   # Non-sensitive config shared across services (12-factor III).
@@ -169,8 +169,8 @@ services:
     enabled: true
     # repository is relative to global.image.registry unless it contains a "/".
     image:
-      repository: aigent-squad/supervisor
-      tag: "0.1.0"
+      repository: karlipegomes/aigent-squad
+      tag: "latest"
     port: 8000
     # In inProcess mode the supervisor runs every agent → mount the configs.
     mountAgents: true

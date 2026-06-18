@@ -5,13 +5,13 @@ description: |
   Agents are defined by YAML config + prompt, not code. Add agents
   via values.yaml without rebuilding the image.
 type: application
-version: 0.5.0
+version: 0.6.0
 appVersion: "0.1.0"
 kubeVersion: ">=1.24.0-0"
-home: https://github.com/karlipegomes/staffops-aigent-squad
+home: https://github.com/StaffOps/staffops-aigent-squad
 sources:
-  - https://github.com/karlipegomes/staffops-aigent-squad
-  - https://github.com/karlipegomes/helm-charts
+  - https://github.com/StaffOps/staffops-aigent-squad
+  - https://github.com/StaffOps/helm-charts
 keywords:
   - ai-agents
   - multi-agent

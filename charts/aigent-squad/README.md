@@ -22,17 +22,24 @@ is **opt-in and off by default**, so `helm lint`/`template` and a bare
 ## Install
 
 ```bash
-# Default lean topology (supervisor runs all agents in-process)
-helm install aigent-squad ./charts/aigent-squad \
+# Via Helm repo (recommended)
+helm repo add staffops https://StaffOps.github.io/helm-charts
+helm repo update
+
+helm install aigent-squad staffops/aigent-squad \
   --namespace aigent-squad --create-namespace \
   --set redis.host=my-elasticache.cache.amazonaws.com
 
-# Full distributed topology (spec 05)
-helm install aigent-squad ./charts/aigent-squad \
+# Full distributed topology
+helm install aigent-squad staffops/aigent-squad \
   --namespace aigent-squad --create-namespace \
-  -f ./charts/aigent-squad/values-distributed.yaml \
+  -f https://raw.githubusercontent.com/StaffOps/helm-charts/main/charts/aigent-squad/values-distributed.yaml \
   --set redis.host=my-elasticache.cache.amazonaws.com
 ```
+
+The image `karlipegomes/aigent-squad:latest` is published to Docker Hub on
+every merge to `main` (multi-arch: amd64 + arm64). Override with
+`--set services.supervisor.image.tag=sha-<commit>` for pinned deploys.
 
 For production, override IRSA role ARNs, the ingress host, the ElastiCache
 endpoint, and the SecretStore via `--set` or a custom values file. Deploy via ArgoCD.

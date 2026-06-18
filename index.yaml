@@ -1,0 +1,68 @@
+apiVersion: v1
+entries:
+  aigent-squad:
+  - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-06-18T03:37:45.114051649Z"
+    description: 'Config-driven multi-agent platform for AWS/K8s operations. Agents
+      are defined by YAML config + prompt, not code. Add agents via values.yaml without
+      rebuilding the image. '
+    digest: d39f108e187f01f34fce85d724b1c54f33021c6cb91a0a1330bbf69cbc43449c
+    home: https://github.com/StaffOps/staffops-aigent-squad
+    keywords:
+    - ai-agents
+    - multi-agent
+    - observability
+    - aws
+    - kubernetes
+    - config-driven
+    kubeVersion: '>=1.24.0-0'
+    maintainers:
+    - name: StaffOps Contributors
+      url: https://github.com/StaffOps
+    name: aigent-squad
+    sources:
+    - https://github.com/StaffOps/staffops-aigent-squad
+    - https://github.com/StaffOps/helm-charts
+    type: application
+    urls:
+    - https://github.com/StaffOps/helm-charts/releases/download/aigent-squad-0.6.0/aigent-squad-0.6.0.tgz
+    version: 0.6.0
+  anomaly-detection:
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
+          description: Initial chart release for anomaly-detection v0.7.0
+      artifacthub.io/license: Apache-2.0
+    apiVersion: v2
+    appVersion: 0.7.0
+    created: "2026-06-18T03:37:45.292203581Z"
+    description: 'Distributed anomaly detection for Kubernetes clusters. Combines
+      adaptive statistical detection (Go controller + workers) with ML-based forecasting
+      and multivariate analysis (Python). Consumes metrics from VictoriaMetrics and
+      logs from Loki, fires correlated alerts via Alertmanager. '
+    digest: 1fd6cc34adff19289a616b5ddd22bbfe3cd909a57770e2b5f024725367a613ae
+    home: https://staffops.github.io/anomaly-detection/
+    icon: https://avatars.githubusercontent.com/u/66139348?s=200&v=4
+    keywords:
+    - anomaly-detection
+    - observability
+    - sre
+    - victoriametrics
+    - loki
+    - alertmanager
+    - machine-learning
+    kubeVersion: '>=1.24.0-0'
+    maintainers:
+    - name: StaffOps Contributors
+      url: https://github.com/StaffOps
+    name: anomaly-detection
+    sources:
+    - https://github.com/StaffOps/staffops-anomaly-detection
+    - https://github.com/StaffOps/helm-charts
+    type: application
+    urls:
+    - https://github.com/StaffOps/helm-charts/releases/download/anomaly-detection-0.1.0/anomaly-detection-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-06-18T03:37:45.292209281Z"

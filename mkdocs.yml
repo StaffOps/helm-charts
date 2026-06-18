@@ -1,0 +1,67 @@
+site_name: Helm Charts — StaffOps
+site_description: Kubernetes-ready Helm charts for the StaffOps suite
+site_url: https://staffops.github.io/helm-charts/
+repo_url: https://github.com/StaffOps/helm-charts
+repo_name: StaffOps/helm-charts
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+    - content.action.edit
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Charts:
+      - Aigent Squad: charts/aigent-squad.md
+      - Anomaly Detection: charts/anomaly-detection.md
+  - Contributing: contributing.md
+
+plugins:
+  - search:
+      lang: en
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - admonition
+  - attr_list
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/StaffOps
+  generator: false
+
+copyright: Copyright &copy; StaffOps Contributors — Apache 2.0

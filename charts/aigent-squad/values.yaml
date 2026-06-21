@@ -168,9 +168,10 @@ services:
   supervisor:
     enabled: true
     # repository is relative to global.image.registry unless it contains a "/".
+    # tag omitted on purpose → inherits Chart.appVersion (reproducible, pinned).
+    # Override per-release only by bumping appVersion in Chart.yaml.
     image:
       repository: karlipegomes/aigent-squad
-      tag: "latest"
     port: 8000
     # In inProcess mode the supervisor runs every agent → mount the configs.
     mountAgents: true

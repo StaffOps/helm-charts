@@ -11,13 +11,39 @@ topology: distributed
 
 # Specialist services do not run the supervisor's in-process agents.
 # Each runs a single agent image; mountAgents loads its own config.
+#
+# Two-tier front door (spec 31): gateway (public) → supervisor (backend) →
+# specialists. NetworkPolicy chain: gateway ⇐ ingress + allowFrom; supervisor
+# ⇐ gateway only; each specialist/mcp ⇐ supervisor only.
 services:
+  # Edge gateway — the ONLY externally exposed tier (spec 31).
+  gateway:
+    enabled: true
+    image: { repository: aigent-squad/supervisor, tag: "0.1.0" }
+    command: ["python", "-m", "src.gateway.main"]
+    port: 8000
+    mountAgents: false
+    expose: true
+    serviceAccount: { create: true, annotations: {} }
+    env:
+      SUPERVISOR_URL: "http://{{ .Release.Name }}-supervisor:8001"
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 512Mi }
+    scaling:
+      autoscaling: { kind: keda, minReplicas: 2, maxReplicas: 10 }
+    networkPolicy:
+      enabled: true
+      # In-cluster callers (Alertmanager, anomaly-detection, Falco …) go here.
+      allowFrom: []
+
   supervisor:
     enabled: true
     image: { repository: aigent-squad/supervisor, tag: "0.1.0" }
-    port: 8000
+    command: ["python", "-m", "src.supervisor.server"]
+    port: 8001
     mountAgents: false      # routes to specialists over HTTP instead
-    expose: true
+    expose: false           # backend only — reached via the gateway
     serviceAccount:
       create: true
       annotations: {}
@@ -27,7 +53,11 @@ services:
       limits: { memory: 1Gi }
     scaling:
       autoscaling: { kind: keda, minReplicas: 2, maxReplicas: 10 }
-    networkPolicy: { enabled: true, allowFrom: [] }
+    networkPolicy:
+      enabled: true
+      # /internal/* trust boundary — only the gateway may reach the supervisor.
+      allowFrom:
+        - podSelector: { matchLabels: { app.kubernetes.io/component: gateway } }
 
   aws:
     enabled: true
@@ -44,7 +74,10 @@ services:
       limits: { memory: 512Mi }
     scaling:
       autoscaling: { kind: keda, minReplicas: 1, maxReplicas: 15 }
-    networkPolicy: { enabled: true, allowFrom: [] }
+    networkPolicy:
+      enabled: true
+      allowFrom:
+        - podSelector: { matchLabels: { app.kubernetes.io/component: supervisor } }
 
   kubernetes:
     enabled: true
@@ -59,7 +92,10 @@ services:
       limits: { memory: 512Mi }
     scaling:
       autoscaling: { kind: keda, minReplicas: 1, maxReplicas: 10 }
-    networkPolicy: { enabled: true, allowFrom: [] }
+    networkPolicy:
+      enabled: true
+      allowFrom:
+        - podSelector: { matchLabels: { app.kubernetes.io/component: supervisor } }
 
   finops:
     enabled: true
@@ -76,7 +112,10 @@ services:
       limits: { memory: 512Mi }
     scaling:
       autoscaling: { kind: keda, minReplicas: 1, maxReplicas: 5 }
-    networkPolicy: { enabled: true, allowFrom: [] }
+    networkPolicy:
+      enabled: true
+      allowFrom:
+        - podSelector: { matchLabels: { app.kubernetes.io/component: supervisor } }
 
   devops:
     enabled: true
@@ -90,7 +129,10 @@ services:
       limits: { memory: 512Mi }
     scaling:
       autoscaling: { kind: keda, minReplicas: 1, maxReplicas: 5 }
-    networkPolicy: { enabled: true, allowFrom: [] }
+    networkPolicy:
+      enabled: true
+      allowFrom:
+        - podSelector: { matchLabels: { app.kubernetes.io/component: supervisor } }
 
   observability:
     enabled: true
@@ -104,21 +146,30 @@ services:
       limits: { memory: 512Mi }
     scaling:
       autoscaling: { kind: keda, minReplicas: 2, maxReplicas: 8 }
-    networkPolicy: { enabled: true, allowFrom: [] }
+    networkPolicy:
+      enabled: true
+      allowFrom:
+        - podSelector: { matchLabels: { app.kubernetes.io/component: supervisor } }
 
   mcp-server:
     enabled: true
     image: { repository: aigent-squad/mcp-server, tag: "0.1.0" }
+    command: []                # mcp-server image has its own entrypoint
     port: 8006
     mountAgents: false
     expose: true               # facade for Kiro CLI
+    env:
+      # mcp-server calls the gateway's public /query (spec 31)
+      SUPERVISOR_URL: "http://{{ .Release.Name }}-gateway:8000/query"
     serviceAccount: { create: true, annotations: {} }
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { memory: 512Mi }
     scaling:
       autoscaling: { kind: keda, minReplicas: 1, maxReplicas: 5 }
-    networkPolicy: { enabled: true, allowFrom: [] }
+    networkPolicy:
+      enabled: true
+      allowFrom: []            # gets ingress controller via expose: true
 
 # NetworkPolicy on: specialists accept ingress only from the supervisor.
 networkPolicy:
@@ -142,15 +193,19 @@ externalSecrets:
           remoteRef: { key: aigent-squad/gitlab-token }
         - secretKey: DOCS_PORTAL_TOKEN
           remoteRef: { key: aigent-squad/docs-portal-token }
+        # spec 31 — gateway↔supervisor link token (distinct from INTERNAL_API_TOKEN)
+        - secretKey: SUPERVISOR_INTERNAL_TOKEN
+          remoteRef: { key: aigent-squad/supervisor-internal-token }
 
-# External entrypoint (only supervisor + mcp-server are exposed).
+# External entrypoint — only the gateway + mcp-server are exposed (spec 31).
+# The supervisor is backend-only; clients reach the squad through the gateway.
 # This example uses Gateway API (Istio). Switch routing.type to "ingress"
 # for an nginx/ALB Ingress, or "none" to disable external routing.
 routing:
   type: gatewayapi          # none | ingress | gatewayapi
   host: aigent-squad.example.com
   paths:
-    supervisor: /api/supervisor
+    gateway: /
     mcp-server: /api/mcp
   tls:
     enabled: false          # GatewayAPI: TLS usually terminated at the Gateway

@@ -13,12 +13,41 @@ global:
     ENVIRONMENT: "DEV"
 
 services:
+  # Gateway tier (spec 31) — pinned to no-autoscaling for the bare kind cluster
+  # (KEDA CRD is absent in chart-testing). Real envs use values-<env>.yaml.
+  gateway:
+    enabled: true
+    image:
+      repository: aigent-squad/supervisor
+      tag: "0.1.0"
+    command: ["python", "-m", "src.gateway.main"]
+    port: 8000
+    mountAgents: false
+    expose: false
+    serviceAccount:
+      create: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 256Mi
+    workload:
+      kind: Deployment
+    scaling:
+      replicas: 1
+      autoscaling:
+        kind: none
+    networkPolicy:
+      enabled: false
+
   supervisor:
     enabled: true
     image:
       repository: aigent-squad/supervisor
       tag: "0.1.0"
-    port: 8000
+    command: ["python", "-m", "src.supervisor.server"]
+    port: 8001
     mountAgents: true
     expose: false
     serviceAccount:

@@ -30,12 +30,10 @@ spec:
             matchLabels:
               {{- toYaml $root.Values.networkPolicy.ingressNamespaceSelector | nindent 14 }}
         {{- end }}
-        {{- if ne $name "supervisor" }}
-        # Specialist/mcp services accept traffic from the supervisor pods.
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/component: supervisor
-        {{- end }}
+        {{- /* Per-service allowFrom is the source of truth for in-cluster peers.
+               Two-tier (spec 31): the supervisor allows only the gateway; the
+               gateway allows the ingress controller (above) + any callers added
+               in its allowFrom (Alertmanager, anomaly-detection, Falco …). */}}
         {{- range (dig "networkPolicy" "allowFrom" list $svc) }}
         - {{- toYaml . | nindent 10 }}
         {{- end }}

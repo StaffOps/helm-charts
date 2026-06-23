@@ -8,8 +8,21 @@ One chart, two topologies:
 
 | Topology | What it deploys | Matches |
 |----------|-----------------|---------|
-| `inProcess` (default) | A single **supervisor** process that runs all agents from config. | ADR-001, spec `02-unify-agent-architecture` |
+| `inProcess` (default) | An edge **gateway** (public front door) + a single **supervisor** process that runs all agents from config. | ADR-001, spec `02`, spec `31-edge-gateway-worker-pool` |
 | `distributed` | **supervisor + 5 specialist agents + mcp-server**, each its own Deployment/Service/ServiceAccount, autoscaled (HPA or KEDA), NetworkPolicy-isolated. | spec `05-helm-chart` |
+
+**Two-tier front door (spec 31)**: the `gateway` service is the only externally
+exposed tier — it does edge auth, a worker pool with backpressure, and global
+rate/budget admission, then forwards to the `supervisor` backend over
+`/internal/process` (port 8001, gateway-only via NetworkPolicy + a distinct
+`SUPERVISOR_INTERNAL_TOKEN`). The gateway is also the entrypoint for in-cluster
+callers (Alertmanager, anomaly-detection, Falco …) — add them to
+`services.gateway.networkPolicy.allowFrom`. The supervisor never accepts traffic
+directly (the `/internal/*` trust boundary).
+
+> ⚠️ Requires an app image that contains `src/gateway` (spec 31). Until the app
+> cuts a release with the gateway, pin `services.gateway.image.tag` /
+> `services.supervisor.image.tag` to a dev tag that includes it.
 
 Everything CRD-dependent (KEDA, External Secrets, NetworkPolicy, Gateway API)
 is **opt-in and off by default**, so `helm lint`/`template` and a bare

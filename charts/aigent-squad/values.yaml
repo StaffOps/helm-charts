@@ -43,7 +43,7 @@ global:
   # Mandatory Kyverno labels (k8s-best-practices). Without CostCenter the
   # OTel k8sattributesprocessor will not enrich telemetry.
   labels:
-    CostCenter: "Platform-Infrastructure"
+    CostCenter: "devops-team"
     Environment: "PRD"
 
   # Restricted pod/container security context (k8s-best-practices, cloud-security).
@@ -165,6 +165,56 @@ agents:
 # specialist + mcp-server entries are enabled (see values-distributed.yaml).
 # -----------------------------------------------------------------------------
 services:
+  # Edge gateway (spec 31) — public front door. Edge auth, worker pool,
+  # admission (rate/budget), protocol (OpenAI /v1 + /query). Forwards to the
+  # supervisor's /internal/process. The ONLY tier exposed externally, and the
+  # entrypoint for in-cluster callers too (Alertmanager, anomaly-detection,
+  # Falco …) via networkPolicy.allowFrom below.
+  gateway:
+    enabled: true
+    image:
+      repository: karlipegomes/aigent-squad
+    command: ["python", "-m", "src.gateway.main"]
+    port: 8000
+    mountAgents: false        # gateway holds no agent config
+    expose: true              # the only externally-routed service
+    serviceAccount:
+      create: true
+      name: ""
+      annotations: {}
+    env:
+      SUPERVISOR_URL: "http://{{ .Release.Name }}-supervisor:8001"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 512Mi
+    workload:
+      kind: Deployment
+      strategy: {}
+    scaling:
+      replicas: 2
+      autoscaling:
+        kind: keda            # scales on RPS (define triggers per env)
+        minReplicas: 2
+        maxReplicas: 10
+        pollingInterval: 30
+        triggers: []
+    networkPolicy:
+      enabled: true
+      # Gateway is the front door for external traffic AND in-cluster callers.
+      # The ingress controller is added automatically (expose: true). Add other
+      # in-cluster clients here — each entry is a NetworkPolicyPeer. Examples:
+      allowFrom: []
+      #   # Alertmanager (POST /alerts/incoming — spec 18)
+      #   - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: monitoring } }
+      #     podSelector: { matchLabels: { app.kubernetes.io/name: alertmanager } }
+      #   # anomaly-detection controller
+      #   - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: anomaly-detection } }
+      #   # Falco
+      #   - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: falco } }
+
   supervisor:
     enabled: true
     # repository is relative to global.image.registry unless it contains a "/".
@@ -172,11 +222,12 @@ services:
     # Override per-release only by bumping appVersion in Chart.yaml.
     image:
       repository: karlipegomes/aigent-squad
-    port: 8000
+    command: ["python", "-m", "src.supervisor.server"]
+    port: 8001
     # In inProcess mode the supervisor runs every agent → mount the configs.
     mountAgents: true
-    # Candidate for external exposure via Ingress (only supervisor + mcp).
-    expose: true
+    # Backend only (spec 31): reached via the gateway, never exposed externally.
+    expose: false
     serviceAccount:
       create: true
       name: ""
@@ -202,11 +253,11 @@ services:
       podManagementPolicy: OrderedReady   # OrderedReady | Parallel
       volumeClaimTemplates: []            # standard PVC templates
     scaling:
-      replicas: 1
+      replicas: 2
       # Autoscaling: pick none, HPA, or KEDA.
       autoscaling:
         kind: none             # none | hpa | keda
-        minReplicas: 1
+        minReplicas: 2
         maxReplicas: 10
         # --- hpa (kind: hpa) ---
         targetCPUUtilizationPercentage: 70
@@ -215,9 +266,15 @@ services:
         pollingInterval: 30
         triggers: []           # KEDA triggers; defaults to a CPU trigger when empty
     networkPolicy:
-      enabled: false
-      # extra ingress sources beyond the default (ingress controller namespace)
-      allowFrom: []
+      # Locked to gateway-only (spec 31 /internal/* trust boundary). Even with
+      # global networkPolicy.enabled, the supervisor accepts ingress ONLY from
+      # the gateway — in-cluster tools must go through the gateway (auth +
+      # admission), never the supervisor directly. Do NOT add allowFrom here.
+      enabled: true
+      allowFrom:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: gateway
 
 # -----------------------------------------------------------------------------
 # Routing — how exposed services (expose: true) are reached from outside.
@@ -285,6 +342,10 @@ externalSecrets:
     #       remoteRef: { key: aigent-squad/redis-password }
     #     - secretKey: GITLAB_TOKEN
     #       remoteRef: { key: aigent-squad/gitlab-token }
+    #     # spec 31 — gateway↔supervisor link token, DISTINCT from INTERNAL_API_TOKEN.
+    #     # Gateway sends it; supervisor validates it on /internal/process.
+    #     - secretKey: SUPERVISOR_INTERNAL_TOKEN
+    #       remoteRef: { key: aigent-squad/supervisor-internal-token }
 
 # Name overrides
 nameOverride: ""

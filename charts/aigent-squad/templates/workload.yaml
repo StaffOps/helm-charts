@@ -86,6 +86,10 @@ spec:
         - name: {{ $name }}
           image: {{ include "aigent-squad.image" (dict "root" $root "svc" $svc) | quote }}
           imagePullPolicy: {{ $root.Values.global.image.pullPolicy }}
+          {{- with dig "command" list $svc }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ $svc.port }}
@@ -102,7 +106,7 @@ spec:
             {{- include "aigent-squad.commonEnv" $root | nindent 12 }}
             {{- range $k, $v := (dig "env" dict $svc) }}
             - name: {{ $k }}
-              value: {{ $v | quote }}
+              value: {{ tpl ($v | toString) $root | quote }}
             {{- end }}
           {{- if $root.Values.externalSecrets.enabled }}
           envFrom:

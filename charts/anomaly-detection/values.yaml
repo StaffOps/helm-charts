@@ -239,6 +239,20 @@ redis:
     size: 1Gi
     storageClass: ""
 
+  # -- AUTH for the in-cluster Redis (redis.enabled=true). When enabled, the
+  # chart renders an ExternalSecret that syncs the password from AWS Secrets
+  # Manager (via the cluster ClusterSecretStore), makes redis-server require it,
+  # and injects it into the controller/worker as REDIS_PASSWORD.
+  auth:
+    enabled: false
+    # Name of the K8s Secret ESO creates (and that the pods read).
+    secretName: ""            # defaults to "<fullname>-redis-auth"
+    # ClusterSecretStore name (BDC core cluster: `aws`).
+    secretStore: "aws"
+    # AWS Secrets Manager key ESO fetches (plain-string secret → redis-password).
+    awsSecretKey: ""          # e.g. "staffops/anomaly-detection/redis-password"
+    refreshInterval: 1h
+
   # -- External Redis (used when enabled: false). The controller and workers
   # will connect here. Password is read from a referenced Secret.
   external:
@@ -375,9 +389,10 @@ vmServiceScrape:
   interval: 30s
   labels: {}
 
-vmRule:
-  # -- Create vm-operator VMRule with health alerts and recording rules
-  # (top noisy workloads, cardinality watch).
+prometheusRule:
+  # -- Create a Prometheus Operator PrometheusRule with health alerts and
+  # recording rules (top noisy workloads). Portable across Prometheus, VM
+  # (vmalertmanager scrapes PrometheusRule via the operator), and Thanos.
   enabled: false
   namespace: ""        # defaults to release namespace
   additionalLabels: {}

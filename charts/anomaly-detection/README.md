@@ -49,7 +49,7 @@ graph LR
 - Kubernetes ≥ 1.24
 - Helm ≥ 3.10
 - Reachable VictoriaMetrics, Loki, and Alertmanager endpoints (the chart does NOT install them)
-- Optional: vm-operator (for VMRule / VMServiceScrape resources), Prometheus Operator (for ServiceMonitor), Grafana sidecar (for dashboard discovery)
+- Optional: Prometheus Operator (for PrometheusRule + ServiceMonitor), vm-operator (for VMServiceScrape), Grafana sidecar (for dashboard discovery)
 
 ## Installation
 
@@ -92,7 +92,7 @@ redis:
 vmServiceScrape:
   enabled: true
 
-vmRule:
+prometheusRule:
   enabled: true
 
 grafanaDashboard:
@@ -183,7 +183,7 @@ See `values.yaml` for the full schema with comments. Key values:
 |-----|---------|-------------|
 | `serviceMonitor.enabled` | `false` | Prometheus Operator ServiceMonitor |
 | `vmServiceScrape.enabled` | `false` | vm-operator VMServiceScrape |
-| `vmRule.enabled` | `false` | vm-operator VMRule (health alerts + recording rules) |
+| `prometheusRule.enabled` | `false` | PrometheusRule (health alerts + recording rules) |
 | `grafanaDashboard.enabled` | `false` | ConfigMap labelled for Grafana sidecar discovery |
 
 ## Uninstalling

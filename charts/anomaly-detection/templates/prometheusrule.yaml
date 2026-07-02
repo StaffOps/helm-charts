@@ -1,12 +1,12 @@
-{{- if .Values.vmRule.enabled -}}
-apiVersion: operator.victoriametrics.com/v1beta1
-kind: VMRule
+{{- if .Values.prometheusRule.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
 metadata:
   name: {{ include "staffops-ad.fullname" . }}-recording
-  namespace: {{ .Values.vmRule.namespace | default .Release.Namespace }}
+  namespace: {{ .Values.prometheusRule.namespace | default .Release.Namespace }}
   labels:
     {{- include "staffops-ad.labels" . | nindent 4 }}
-    {{- with .Values.vmRule.additionalLabels }}
+    {{- with .Values.prometheusRule.additionalLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
@@ -31,14 +31,14 @@ spec:
               increase(staffops_ad_detection_anomalies_by_workload_total[1h])
             )
 ---
-apiVersion: operator.victoriametrics.com/v1beta1
-kind: VMRule
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
 metadata:
   name: {{ include "staffops-ad.fullname" . }}-health
-  namespace: {{ .Values.vmRule.namespace | default .Release.Namespace }}
+  namespace: {{ .Values.prometheusRule.namespace | default .Release.Namespace }}
   labels:
     {{- include "staffops-ad.labels" . | nindent 4 }}
-    {{- with .Values.vmRule.additionalLabels }}
+    {{- with .Values.prometheusRule.additionalLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:

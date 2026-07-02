@@ -52,7 +52,7 @@ serviceMonitor:
   enabled: false
 vmServiceScrape:
   enabled: false
-vmRule:
+prometheusRule:
   enabled: false
 grafanaDashboard:
   enabled: false

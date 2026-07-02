@@ -37,10 +37,10 @@ Run the connectivity smoke test:
 
   helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
 
-{{- if not .Values.vmRule.enabled }}
+{{- if not .Values.prometheusRule.enabled }}
 
-💡 Want pre-built recording rules and health alerts? Set `vmRule.enabled=true`
-   (requires vm-operator).
+💡 Want pre-built recording rules and health alerts? Set `prometheusRule.enabled=true`
+   (requires Prometheus Operator / vm-operator PrometheusRule support).
 {{- end }}
 {{- if not .Values.grafanaDashboard.enabled }}
 💡 Want the operator Grafana dashboard? Set `grafanaDashboard.enabled=true`

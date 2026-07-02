@@ -11,7 +11,11 @@ data:
     redis:
       addr: {{ include "staffops-ad.redis.addr" . | quote }}
       db: {{ if .Values.redis.enabled }}0{{ else }}{{ .Values.redis.external.db }}{{ end }}
-      {{- if not .Values.redis.enabled }}
+      {{- if eq (include "staffops-ad.redis.authEnabled" .) "true" }}
+      # In-cluster Redis AUTH: REDIS_PASSWORD is injected from the ESO secret and
+      # expanded by the Go config loader (internal/config expandEnv).
+      password: ${REDIS_PASSWORD}
+      {{- else if not .Values.redis.enabled }}
       {{- if .Values.redis.external.existingSecret }}
       # password mounted via env (see Deployment env: REDIS_PASSWORD)
       password: ""

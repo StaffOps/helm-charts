@@ -190,6 +190,21 @@ Used by controller and worker deployments to set REDIS_ADDR.
 {{- end }}
 
 {{/*
+Name of the K8s Secret holding the in-cluster Redis password (ESO target).
+Defaults to "<fullname>-redis-auth" when redis.auth.secretName is empty.
+*/}}
+{{- define "staffops-ad.redis.authSecretName" -}}
+{{- .Values.redis.auth.secretName | default (printf "%s-redis-auth" (include "staffops-ad.fullname" .)) -}}
+{{- end }}
+
+{{/*
+Whether an in-cluster Redis password is in play (auth enabled on managed Redis).
+*/}}
+{{- define "staffops-ad.redis.authEnabled" -}}
+{{- and .Values.redis.enabled .Values.redis.auth.enabled -}}
+{{- end }}
+
+{{/*
 Worker gRPC endpoint used by the controller.
 Uses dns:/// scheme to enable gRPC client-side round-robin across worker pod IPs.
 Pairs with a headless service (clusterIP: None) on the worker side.

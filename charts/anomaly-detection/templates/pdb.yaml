@@ -1,0 +1,33 @@
+{{- if .Values.podDisruptionBudget.controller.enabled }}
+{{- if gt (int .Values.controller.replicaCount) 1 }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "staffops-ad.controller.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "staffops-ad.controller.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.controller.minAvailable | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "staffops-ad.controller.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- if .Values.podDisruptionBudget.worker.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "staffops-ad.worker.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "staffops-ad.worker.labels" . | nindent 4 }}
+spec:
+  # maxUnavailable (not minAvailable) so the budget never deadlocks node drains
+  # when replicaCount is small. Always allows one eviction at a time.
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "staffops-ad.worker.selectorLabels" . | nindent 6 }}
+{{- end }}

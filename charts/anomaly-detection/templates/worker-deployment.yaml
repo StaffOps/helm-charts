@@ -46,7 +46,13 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            {{- if and (not .Values.redis.enabled) .Values.redis.external.existingSecret }}
+            {{- if eq (include "staffops-ad.redis.authEnabled" .) "true" }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "staffops-ad.redis.authSecretName" . }}
+                  key: redis-password
+            {{- else if and (not .Values.redis.enabled) .Values.redis.external.existingSecret }}
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:

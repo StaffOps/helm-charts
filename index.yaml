@@ -2,6 +2,33 @@ apiVersion: v1
 entries:
   aigent-squad:
   - apiVersion: v2
+    appVersion: 0.3.0
+    created: "2026-07-02T05:33:52.878035812Z"
+    description: 'Config-driven multi-agent platform for AWS/K8s operations. Agents
+      are defined by YAML config + prompt, not code. Add agents via values.yaml without
+      rebuilding the image. '
+    digest: e26322fa1068904bed657a0acb715a4597c12b86a6681904a6cc1ffdda849a31
+    home: https://github.com/StaffOps/staffops-aigent-squad
+    keywords:
+    - ai-agents
+    - multi-agent
+    - observability
+    - aws
+    - kubernetes
+    - config-driven
+    kubeVersion: '>=1.24.0-0'
+    maintainers:
+    - name: StaffOps Contributors
+      url: https://github.com/StaffOps
+    name: aigent-squad
+    sources:
+    - https://github.com/StaffOps/staffops-aigent-squad
+    - https://github.com/StaffOps/helm-charts
+    type: application
+    urls:
+    - https://github.com/StaffOps/helm-charts/releases/download/aigent-squad-0.9.1/aigent-squad-0.9.1.tgz
+    version: 0.9.1
+  - apiVersion: v2
     appVersion: 0.3.0-dev
     created: "2026-07-02T04:44:52.951500614Z"
     description: 'Config-driven multi-agent platform for AWS/K8s operations. Agents
@@ -146,4 +173,4 @@ entries:
     urls:
     - https://github.com/StaffOps/helm-charts/releases/download/anomaly-detection-0.1.0/anomaly-detection-0.1.0.tgz
     version: 0.1.0
-generated: "2026-07-02T04:44:52.951522926Z"
+generated: "2026-07-02T05:33:52.87805446Z"

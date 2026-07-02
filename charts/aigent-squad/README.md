@@ -162,7 +162,7 @@ Path per exposed service is `/<service>` by default; override via `routing.paths
 | `global.image.registry` | `""` | Empty = Docker Hub as-is (`karlipegomes/aigent-squad`, the CI target). Local dev overrides to a Harbor project (e.g. `harbor.bigdatacorp.com.br/labs`). |
 | `global.env` | region/model/env/log | Non-sensitive shared env (12-factor III). |
 | `global.otel.enabled` / `.endpoint` | `true` / collector | OTel export (App→Collector→Backend). |
-| `global.labels` | CostCenter, Environment | Mandatory Kyverno labels. |
+| `global.labels` | `{}` | Optional extra labels on every workload/pod (cost tags, env, team…). |
 | `global.securityContext` | non-root, RO rootfs, drop ALL | Restricted container context. |
 | `global.probes.{liveness,readiness}.path` | `/healthz` / `/ready` | Probe paths (spec 07 code target). |
 | `agentsSource.type` | `configmap` | `configmap` (inline) or `git` (initContainer clone). |

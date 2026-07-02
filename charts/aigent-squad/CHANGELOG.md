@@ -4,6 +4,15 @@ All notable changes to the `aigent-squad` Helm chart are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow
 [SemVer](https://semver.org/).
 
+## [0.9.1] - 2026-07-02
+
+### Changed
+- `appVersion` `0.3.0-dev` → `0.3.0` (stable release cut; image published by the
+  project pipeline).
+- `global.labels` is now an empty, optional map — the chart ships **no**
+  org-specific labels (removed the cost-allocation tag defaults). Add whatever
+  your platform requires per deployment.
+
 ## [0.9.0] - 2026-07-01
 
 First cluster-validated release (devops-core, in-process topology). All fixes
@@ -31,9 +40,9 @@ Secrets Operator.
 ### Changed
 - `appVersion` `0.2.0` → `0.3.0-dev`. The `0.2.0` image predates the edge
   gateway (spec 31); `0.3.0-dev` is the first image containing both tiers.
-- `global.labels.CostCenter` default is now the neutral placeholder `CHANGE-ME`.
-  CostCenter is org-specific and subject to an AWS tag policy — it MUST be set
-  to a policy-approved value in an environment overlay, never hardcoded here.
+- `global.labels` is now an empty, optional map. The chart no longer ships any
+  org-specific labels (removed the cost-allocation tags) — add whatever your
+  platform requires per deployment.
 
 ### Notes
 - `topology: distributed` renders specialist Deployments but is **not

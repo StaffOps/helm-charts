@@ -45,14 +45,12 @@ global:
     enabled: true
     endpoint: "http://otel-collector.monitoring:4317"
 
-  # Mandatory Kyverno labels (k8s-best-practices). Without CostCenter the
-  # OTel k8sattributesprocessor will not enrich telemetry.
-  # NOTE: CostCenter/Environment are org-specific and MUST be overridden per
-  # deployment (values-<env>). The org's AWS tag policy rejects arbitrary
-  # values — set a real, policy-approved CostCenter in your environment overlay.
-  labels:
-    CostCenter: "CHANGE-ME"
-    Environment: "PRD"
+  # Extra labels applied to every workload/pod. Empty by default — the chart
+  # imposes no org-specific labels. Add whatever your platform requires
+  # (cost-allocation tags, environment, team, etc.) per deployment.
+  labels: {}
+    # Environment: PRD
+    # team: my-team
 
   # Restricted pod/container security context (k8s-best-practices, cloud-security).
   podSecurityContext:

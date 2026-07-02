@@ -4,6 +4,17 @@ All notable changes to the `aigent-squad` Helm chart are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow
 [SemVer](https://semver.org/).
 
+## [0.9.2] - 2026-07-02
+
+### Changed
+- In-cluster Redis is now a **StatefulSet with a PVC** (was a Deployment +
+  emptyDir). Cache and rate/budget counters survive pod restarts — important on
+  spot instances, which reschedule frequently. Persistence (AOF `everysec`) is
+  re-enabled because `/data` is now a writable PVC (the read-only-rootfs reason
+  for disabling it no longer applies). New `redis.inCluster.persistence`
+  (`size`, `storageClass`). Caveat: EBS PVC is AZ-locked — cross-AZ reschedule
+  waits for the volume's AZ; use managed ElastiCache for cross-AZ HA.
+
 ## [0.9.1] - 2026-07-02
 
 ### Changed

@@ -103,6 +103,13 @@ redis:
         memory: 64Mi
       limits:
         memory: 128Mi
+    # StatefulSet PVC — persists cache + rate/budget counters across pod
+    # restarts (spot interruptions). EBS PVC is AZ-locked (same-AZ restart keeps
+    # data; cross-AZ reschedule waits for the volume's AZ). storageClass empty =
+    # cluster default.
+    persistence:
+      size: 1Gi
+      storageClass: ""
 
 dynamodb:
   sessionsTable: "agent-sessions"

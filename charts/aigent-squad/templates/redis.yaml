@@ -1,17 +1,25 @@
 {{- /*
-Optional in-cluster Redis for DEV only (single pod, no HA, no persistence).
-Production uses managed ElastiCache (redis.host). Opt-in via redis.inCluster.enabled.
+Optional in-cluster Redis for DEV/bring-up. StatefulSet + PVC so the cache and
+the rate/budget counters SURVIVE a pod restart (spot-instance interruptions
+reschedule the pod frequently). Persistence (AOF) is on because /data is a
+writable PVC (not the read-only rootfs). Single replica, no HA.
+
+Caveat: an EBS PVC is AZ-locked — a same-AZ restart keeps the data; a cross-AZ
+reschedule leaves the PVC Pending until an AZ with the volume is available. For
+cross-AZ HA use managed ElastiCache (redis.host / the elasticache TF module).
+Opt-in via redis.inCluster.enabled.
 */ -}}
 {{- if .Values.redis.inCluster.enabled }}
 {{- $name := printf "%s-redis" (include "aigent-squad.fullname" .) }}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ $name }}
   labels:
     {{- include "aigent-squad.labels" . | nindent 4 }}
     app.kubernetes.io/component: redis
 spec:
+  serviceName: {{ $name }}
   replicas: 1
   selector:
     matchLabels:
@@ -28,11 +36,10 @@ spec:
       containers:
         - name: redis
           image: {{ .Values.redis.inCluster.image | quote }}
-          # Ephemeral cache (no HA, no persistence). Disable RDB/AOF so a
-          # read-only rootfs doesn't trip `stop-writes-on-bgsave-error`
-          # (Redis refuses writes when it can't snapshot). Production uses
-          # managed ElastiCache instead (redis.host).
-          args: ["--save", "", "--appendonly", "no"]
+          # Persist to the PVC so cache + rate/budget counters survive restarts
+          # (AOF every second). /data is a writable PVC, so this is safe under a
+          # read-only rootfs (unlike the old emptyDir, which forced --save "").
+          args: ["--appendonly", "yes", "--appendfsync", "everysec"]
           ports:
             - name: redis
               containerPort: 6379
@@ -53,9 +60,17 @@ spec:
               port: redis
             initialDelaySeconds: 10
             periodSeconds: 10
-      volumes:
-        - name: data
-          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with .Values.redis.inCluster.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.redis.inCluster.persistence.size | default "1Gi" | quote }}
 ---
 apiVersion: v1
 kind: Service

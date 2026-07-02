@@ -50,9 +50,11 @@ helm install aigent-squad staffops/aigent-squad \
   --set redis.host=my-elasticache.cache.amazonaws.com
 ```
 
-The image `karlipegomes/aigent-squad:latest` is published to Docker Hub on
-every merge to `main` (multi-arch: amd64 + arm64). Override with
-`--set services.supervisor.image.tag=sha-<commit>` for pinned deploys.
+The image `karlipegomes/aigent-squad` is built and published to Docker Hub by
+the project's CI/CD pipeline (multi-arch: amd64 + arm64), versioned by
+`Chart.appVersion` (don't hardcode a tag). Local development overrides
+`global.image.registry` to a Harbor project (Harbor is used locally only);
+GitHub CI keeps publishing to Docker Hub unchanged.
 
 For production, override IRSA role ARNs, the ingress host, the ElastiCache
 endpoint, and the SecretStore via `--set` or a custom values file. Deploy via ArgoCD.
@@ -157,7 +159,7 @@ Path per exposed service is `/<service>` by default; override via `routing.paths
 | Key | Default | Description |
 |-----|---------|-------------|
 | `topology` | `inProcess` | `inProcess` or `distributed` (intent flag). |
-| `global.image.registry` | `""` | Registry prefix; empty = Docker Hub (`karlipegomes/aigent-squad`). |
+| `global.image.registry` | `""` | Empty = Docker Hub as-is (`karlipegomes/aigent-squad`, the CI target). Local dev overrides to a Harbor project (e.g. `harbor.bigdatacorp.com.br/labs`). |
 | `global.env` | region/model/env/log | Non-sensitive shared env (12-factor III). |
 | `global.otel.enabled` / `.endpoint` | `true` / collector | OTel export (App→Collector→Backend). |
 | `global.labels` | CostCenter, Environment | Mandatory Kyverno labels. |

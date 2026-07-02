@@ -69,8 +69,9 @@ spec:
               {{- else }}
               REPO="{{ $root.Values.agentsSource.repo }}"
               {{- end }}
-              git clone --depth=1 --branch={{ $root.Values.agentsSource.ref }} ${REPO} /tmp/repo && \
-              cp -r /tmp/repo/{{ $root.Values.agentsSource.path }}/* /agents/
+              git clone --depth=1 --branch={{ $root.Values.agentsSource.ref }} ${REPO} /agents/.repo && \
+              cp -r /agents/.repo/{{ $root.Values.agentsSource.path }}/* /agents/ && \
+              rm -rf /agents/.repo
           volumeMounts:
             - name: agents-volume
               mountPath: /agents

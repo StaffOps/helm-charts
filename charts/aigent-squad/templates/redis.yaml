@@ -28,6 +28,11 @@ spec:
       containers:
         - name: redis
           image: {{ .Values.redis.inCluster.image | quote }}
+          # Ephemeral cache (no HA, no persistence). Disable RDB/AOF so a
+          # read-only rootfs doesn't trip `stop-writes-on-bgsave-error`
+          # (Redis refuses writes when it can't snapshot). Production uses
+          # managed ElastiCache instead (redis.host).
+          args: ["--save", "", "--appendonly", "no"]
           ports:
             - name: redis
               containerPort: 6379
@@ -35,6 +40,9 @@ spec:
             {{- toYaml .Values.redis.inCluster.resources | nindent 12 }}
           securityContext:
             {{- toYaml .Values.global.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
           readinessProbe:
             tcpSocket:
               port: redis
@@ -45,6 +53,9 @@ spec:
               port: redis
             initialDelaySeconds: 10
             periodSeconds: 10
+      volumes:
+        - name: data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

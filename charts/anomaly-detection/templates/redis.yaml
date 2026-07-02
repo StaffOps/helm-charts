@@ -1,17 +1,17 @@
 {{- if .Values.redis.enabled -}}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "staffops-ad.redis.fullname" . }}
   labels:
     {{- include "staffops-ad.redis.labels" . | nindent 4 }}
 spec:
-  # Single replica only — this is a simple in-cluster Redis for dev and small
-  # deployments. Production should use redis.enabled=false + external HA Redis
-  # (ElastiCache, Redis Sentinel, etc.).
+  # Single replica — an in-cluster Redis for dev / small deployments. This is a
+  # StatefulSet (not Deployment) so the identity and its PersistentVolumeClaim
+  # share a lifecycle. Production HA should use redis.enabled=false + an external
+  # HA Redis (ElastiCache, Redis Sentinel/Cluster).
   replicas: 1
-  strategy:
-    type: Recreate   # avoid two replicas competing for the PVC during rollouts
+  serviceName: {{ include "staffops-ad.redis.fullname" . }}
   selector:
     matchLabels:
       {{- include "staffops-ad.redis.selectorLabels" . | nindent 6 }}
@@ -73,14 +73,26 @@ spec:
             readOnlyRootFilesystem: false
             capabilities:
               drop: ["ALL"]
+      {{- if not .Values.redis.persistence.enabled }}
       volumes:
         - name: data
-          {{- if .Values.redis.persistence.enabled }}
-          persistentVolumeClaim:
-            claimName: {{ include "staffops-ad.redis.fullname" . }}
-          {{- else }}
           emptyDir: {}
-          {{- end }}
+      {{- end }}
+  {{- if .Values.redis.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "staffops-ad.redis.labels" . | nindent 10 }}
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.redis.persistence.size | default "1Gi" }}
+        {{- with .Values.redis.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+  {{- end }}
 ---
 apiVersion: v1
 kind: Service
@@ -89,7 +101,10 @@ metadata:
   labels:
     {{- include "staffops-ad.redis.labels" . | nindent 4 }}
 spec:
-  type: ClusterIP
+  # Headless service: stable DNS for the StatefulSet pod
+  # (<fullname>-0.<fullname>.<ns>.svc). The service name also resolves to the
+  # pod IP, which is what the controller/worker use via redis.addr.
+  clusterIP: None
   ports:
     - name: redis
       port: 6379
@@ -97,21 +112,4 @@ spec:
       protocol: TCP
   selector:
     {{- include "staffops-ad.redis.selectorLabels" . | nindent 4 }}
-{{- if .Values.redis.persistence.enabled }}
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ include "staffops-ad.redis.fullname" . }}
-  labels:
-    {{- include "staffops-ad.redis.labels" . | nindent 4 }}
-spec:
-  accessModes: ["ReadWriteOnce"]
-  resources:
-    requests:
-      storage: {{ .Values.redis.persistence.size | default "1Gi" }}
-  {{- with .Values.redis.persistence.storageClass }}
-  storageClassName: {{ . | quote }}
-  {{- end }}
-{{- end }}
 {{- end }}

@@ -17,7 +17,7 @@ helm repo update
 helm install ad staffops/anomaly-detection \
   --namespace monitoring \
   --create-namespace \
-  --set datasources.victoriametrics.url=https://vm.example.com/select/0/prometheus \
+  --set datasources.prometheus.url=https://prometheus.example.com/api/v1/query \
   --set datasources.loki.url=https://loki.example.com \
   --set datasources.alertmanager.url=https://alertmanager.example.com
 ```
@@ -39,7 +39,7 @@ graph LR
   C -->|gRPC| ML[ML]
   C --> R[(Redis)]
   W --> R
-  W --> VM[VictoriaMetrics]
+  W --> TSDB[Prometheus-compatible TSDB]
   W --> Loki
   C --> AM[Alertmanager]
 ```
@@ -48,7 +48,7 @@ graph LR
 
 - Kubernetes ≥ 1.24
 - Helm ≥ 3.10
-- Reachable VictoriaMetrics, Loki, and Alertmanager endpoints (the chart does NOT install them)
+- Reachable Prometheus-compatible (Prometheus/Thanos/Cortex/VictoriaMetrics), Loki, and Alertmanager endpoints (the chart does NOT install them)
 - Optional: Prometheus Operator (for PrometheusRule + ServiceMonitor), vm-operator (for VMServiceScrape), Grafana sidecar (for dashboard discovery)
 
 ## Installation
@@ -60,7 +60,7 @@ helm install ad staffops/anomaly-detection \
   --namespace monitoring \
   --create-namespace \
   --set clusterName=prd-eks \
-  --set datasources.victoriametrics.url=https://vm.example.com/select/0/prometheus \
+  --set datasources.prometheus.url=https://prometheus.example.com/api/v1/query \
   --set datasources.loki.url=https://loki.example.com \
   --set datasources.alertmanager.url=https://alertmanager.example.com
 ```
@@ -72,7 +72,7 @@ helm install ad staffops/anomaly-detection \
 clusterName: prd-eks
 
 datasources:
-  victoriametrics:
+  prometheus:
     url: https://vm.internal/select/0/prometheus
   loki:
     url: https://loki.internal
@@ -134,7 +134,7 @@ See `values.yaml` for the full schema with comments. Key values:
 | Key | Description |
 |-----|-------------|
 | `clusterName` | Cluster identity, used as the `cluster` label on all metrics |
-| `datasources.victoriametrics.url` | VM read endpoint (PromQL) |
+| `datasources.prometheus.url` | Prometheus-compatible read endpoint (PromQL) |
 | `datasources.loki.url` | Loki read endpoint (LogQL) |
 | `datasources.alertmanager.url` | Alertmanager v2 endpoint |
 

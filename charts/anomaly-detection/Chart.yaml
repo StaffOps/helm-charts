@@ -3,7 +3,8 @@ name: anomaly-detection
 description: |
   Distributed anomaly detection for Kubernetes clusters. Combines adaptive
   statistical detection (Go controller + workers) with ML-based forecasting
-  and multivariate analysis (Python). Consumes metrics from VictoriaMetrics
+  and multivariate analysis (Python). Consumes metrics from any
+  Prometheus-compatible TSDB (Prometheus, Thanos, Cortex, VictoriaMetrics, ...)
   and logs from Loki, fires correlated alerts via Alertmanager.
 
 type: application
@@ -29,7 +30,7 @@ keywords:
   - anomaly-detection
   - observability
   - sre
-  - victoriametrics
+  - prometheus
   - loki
   - alertmanager
   - machine-learning

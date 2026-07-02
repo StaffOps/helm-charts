@@ -23,9 +23,9 @@ data:
       {{- end }}
 
     datasources:
-      victoriametrics:
-        url: {{ required "datasources.victoriametrics.url is required" .Values.datasources.victoriametrics.url | quote }}
-        timeout: {{ .Values.datasources.victoriametrics.timeout | default "30s" }}
+      prometheus:
+        url: {{ required "datasources.prometheus.url is required" .Values.datasources.prometheus.url | quote }}
+        timeout: {{ .Values.datasources.prometheus.timeout | default "30s" }}
       loki:
         url: {{ required "datasources.loki.url is required" .Values.datasources.loki.url | quote }}
         timeout: {{ .Values.datasources.loki.timeout | default "30s" }}
@@ -96,6 +96,6 @@ data:
       tempo_base_url: {{ .Values.links.tempoBaseUrl | quote }}
       loki_base_url: {{ .Values.links.lokiBaseUrl | quote }}
       runbook_base_url: {{ .Values.links.runbookBaseUrl | quote }}
-      grafana_vm_datasource_uid: {{ .Values.links.grafanaVMDatasourceUid | quote }}
+      grafana_prometheus_datasource_uid: {{ .Values.links.grafanaPromDatasourceUid | quote }}
       grafana_tempo_datasource_uid: {{ .Values.links.grafanaTempoDatasourceUid | quote }}
       grafana_loki_datasource_uid: {{ .Values.links.grafanaLokiDatasourceUid | quote }}

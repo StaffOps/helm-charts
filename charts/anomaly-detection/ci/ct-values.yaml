@@ -9,8 +9,8 @@
 clusterName: "ct-test"
 
 datasources:
-  victoriametrics:
-    url: http://victoria-metrics.example.invalid/select/0/prometheus
+  prometheus:
+    url: http://prometheus.example.invalid/api/v1/query
   loki:
     url: http://loki.example.invalid
   alertmanager:

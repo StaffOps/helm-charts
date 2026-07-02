@@ -14,8 +14,9 @@ clusterName: "default"
 # Image registry / pull secrets
 # =============================================================================
 image:
-  # -- Shared registry for controller, worker, and ml images.
-  registry: ghcr.io
+  # -- Shared registry for controller, worker, and ml images. Set per environment
+  # (e.g. harbor.<org>/labs). Empty means the image ref has no registry prefix.
+  registry: ""
   # -- Shared tag. Defaults to .Chart.AppVersion.
   tag: ""
   # -- Pull policy.
@@ -32,9 +33,11 @@ commonAnnotations: {}
 # All endpoint URLs come via values (12-factor: env-driven config).
 # =============================================================================
 datasources:
-  victoriametrics:
-    # -- VictoriaMetrics read endpoint (PromQL). Must end with the prometheus path
-    # (e.g. `https://vm.example.com/select/0/prometheus`).
+  prometheus:
+    # -- Prometheus-compatible read endpoint (PromQL). Works with any backend
+    # that speaks the Prometheus HTTP API — Prometheus, Thanos, Cortex, Mimir,
+    # VictoriaMetrics, etc. For VictoriaMetrics this ends with the prometheus
+    # path (e.g. `https://<host>/select/0/prometheus`).
     url: ""
     timeout: 30s
   loki:
@@ -52,7 +55,7 @@ controller:
   # -- Per-component image overrides. Registry/tag/pullPolicy fall back to
   # the top-level `image:` section when empty.
   image:
-    repository: karlipegomes/staffops-anomaly-detection-controller
+    repository: staffops-anomaly-detection-controller
     tag: ""           # defaults to .Values.image.tag → .Chart.AppVersion
     registry: ""      # defaults to .Values.image.registry
     pullPolicy: ""    # defaults to .Values.image.pullPolicy
@@ -124,7 +127,7 @@ controller:
 worker:
   # -- Per-component image overrides.
   image:
-    repository: karlipegomes/staffops-anomaly-detection-worker
+    repository: staffops-anomaly-detection-worker
     tag: ""
     registry: ""
     pullPolicy: ""
@@ -176,8 +179,7 @@ ml:
   enabled: true
 
   image:
-    registry: ghcr.io
-    repository: karlipegomes/staffops-anomaly-detection-ml
+    repository: staffops-anomaly-detection-ml
     tag: ""   # defaults to .Chart.AppVersion
     pullPolicy: IfNotPresent
 
@@ -357,7 +359,7 @@ links:
   tempoBaseUrl: ""
   lokiBaseUrl: ""
   runbookBaseUrl: ""
-  grafanaVMDatasourceUid: ""
+  grafanaPromDatasourceUid: ""
   grafanaTempoDatasourceUid: ""
   grafanaLokiDatasourceUid: ""
 

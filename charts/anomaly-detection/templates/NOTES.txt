@@ -47,4 +47,4 @@ Run the connectivity smoke test:
    (requires Grafana sidecar dashboard discovery).
 {{- end }}
 
-Documentation: https://github.com/karlipegomes/staffops-anomaly-detection/tree/main/docs
+Documentation: https://github.com/StaffOps/staffops-anomaly-detection/tree/main/docs

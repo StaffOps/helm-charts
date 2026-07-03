@@ -142,10 +142,11 @@ See `values.yaml` for the full schema with comments. Key values:
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `image.registry` | `ghcr.io` | Container registry |
-| `image.repository` | `karlipegomes/staffops-anomaly-detection` | Controller/worker image |
+| `image.registry` | `""` (set per environment, e.g. `harbor.<org>/labs`) | Container registry |
+| `controller.image.repository` | `staffops-anomaly-detection-controller` | Controller image |
+| `worker.image.repository` | `staffops-anomaly-detection-worker` | Worker image |
 | `image.tag` | `""` (uses `.Chart.AppVersion`) | Image tag |
-| `ml.image.repository` | `karlipegomes/staffops-anomaly-detection-ml` | ML service image |
+| `ml.image.repository` | `staffops-anomaly-detection-ml` | ML service image |
 
 ### Controller / Workers / ML
 

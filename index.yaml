@@ -168,6 +168,45 @@ entries:
       artifacthub.io/category: monitoring-logging
       artifacthub.io/changes: |
         - kind: added
+          description: suppression.excludeAdaptiveWorkloads — silence adaptive noise from bursty infra workloads
+        - kind: changed
+          description: appVersion bumped to 0.8.0 (first homolog deploy + per-workload adaptive suppression)
+      artifacthub.io/license: Apache-2.0
+    apiVersion: v2
+    appVersion: 0.8.0
+    created: "2026-07-14T12:59:00.648565358Z"
+    description: 'Distributed anomaly detection for Kubernetes clusters. Combines
+      adaptive statistical detection (Go controller + workers) with ML-based forecasting
+      and multivariate analysis (Python). Consumes metrics from any Prometheus-compatible
+      TSDB (Prometheus, Thanos, Cortex, VictoriaMetrics, ...) and logs from Loki,
+      fires correlated alerts via Alertmanager. '
+    digest: fe6ab2d554b3ad94b48c8fd4849ee4d6663f2b20e7d7fb1c83e4c6aa33b4f91a
+    home: https://staffops.github.io/anomaly-detection/
+    icon: https://avatars.githubusercontent.com/u/66139348?s=200&v=4
+    keywords:
+    - anomaly-detection
+    - observability
+    - sre
+    - prometheus
+    - loki
+    - alertmanager
+    - machine-learning
+    kubeVersion: '>=1.24.0-0'
+    maintainers:
+    - name: StaffOps Contributors
+      url: https://github.com/StaffOps
+    name: anomaly-detection
+    sources:
+    - https://github.com/StaffOps/staffops-anomaly-detection
+    - https://github.com/StaffOps/helm-charts
+    type: application
+    urls:
+    - https://github.com/StaffOps/helm-charts/releases/download/anomaly-detection-0.2.0/anomaly-detection-0.2.0.tgz
+    version: 0.2.0
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
           description: Initial chart release for anomaly-detection v0.7.0
       artifacthub.io/license: Apache-2.0
     apiVersion: v2
@@ -200,4 +239,4 @@ entries:
     urls:
     - https://github.com/StaffOps/helm-charts/releases/download/anomaly-detection-0.1.0/anomaly-detection-0.1.0.tgz
     version: 0.1.0
-generated: "2026-07-02T13:45:39.071446623Z"
+generated: "2026-07-14T12:59:00.648591271Z"

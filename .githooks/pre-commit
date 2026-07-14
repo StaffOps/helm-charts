@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Pre-commit gate: chart changes must ship with documentation.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+#
+# For every chart whose templates / values.yaml / Chart.yaml changed, the same
+# commit must also update that chart's README.md. Keeps rendered behaviour and
+# its documentation in lockstep. Bypass pure refactors with `git commit --no-verify`.
+set -euo pipefail
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+# Charts whose behaviour/config changed this commit.
+changed_charts=$(printf '%s\n' "$staged" \
+  | grep -E '^charts/[^/]+/(templates/|values\.yaml|Chart\.yaml)' \
+  | sed -E 's#^(charts/[^/]+)/.*#\1#' | sort -u || true)
+[ -z "$changed_charts" ] && exit 0
+
+missing=""
+while IFS= read -r chart; do
+  [ -z "$chart" ] && continue
+  if ! printf '%s\n' "$staged" | grep -qx "$chart/README.md"; then
+    missing="$missing $chart"
+  fi
+done <<< "$changed_charts"
+
+[ -z "$missing" ] && exit 0
+
+cat >&2 <<'MSG'
+✗ pre-commit: chart changed but its README.md was not updated.
+
+  Update the chart README (and, for the anomaly-detection stack, the mkdocs
+  reference under the app repo's docs/site/reference/helm.md) before committing.
+
+  Charts missing a README update:
+MSG
+for c in $missing; do echo "    $c" >&2; done
+cat >&2 <<'MSG'
+
+  If this change genuinely needs no docs (pure refactor), bypass explicitly:
+    git commit --no-verify
+MSG
+exit 1

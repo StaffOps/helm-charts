@@ -174,6 +174,7 @@ See `values.yaml` for the full schema with comments. Key values:
 |-----|-------------|
 | `suppression.excludeNamespaces` | Namespaces fully excluded from detection |
 | `suppression.excludeStaticOnly` | Namespaces where static rules suppressed but adaptive still fires |
+| `suppression.excludeAdaptiveWorkloads` | Workloads where adaptive (Z-Score) noise is suppressed but static/logs still fire — for bursty infra (brokers, collectors, mesh) |
 | `detection.staticRules` | Static threshold rules |
 | `detection.adaptiveMetrics` | Adaptive (Z-Score) metric rules |
 | `detection.logPatterns` | Loki-based log rate detection |

@@ -80,6 +80,7 @@ data:
     suppression:
       exclude_namespaces_csv: {{ join "," .Values.suppression.excludeNamespaces | quote }}
       exclude_static_only_csv: {{ join "," .Values.suppression.excludeStaticOnly | quote }}
+      exclude_adaptive_workloads_csv: {{ join "," .Values.suppression.excludeAdaptiveWorkloads | quote }}
 
     enrichment:
       enabled: {{ .Values.enrichment.enabled }}

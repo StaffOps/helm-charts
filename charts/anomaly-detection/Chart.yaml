@@ -11,11 +11,11 @@ type: application
 
 # Chart version follows the chart's own SemVer (independent of appVersion).
 # Bump on every chart change. Keep MAJOR/MINOR aligned with breaking values.yaml changes.
-version: 0.1.0
+version: 0.2.0
 
 # appVersion tracks the upstream anomaly-detection controller release.
 # Bump when the default container image tag changes.
-appVersion: "0.7.0"
+appVersion: "0.8.0"
 
 kubeVersion: ">=1.24.0-0"
 
@@ -44,4 +44,6 @@ annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/changes: |
     - kind: added
-      description: Initial chart release for anomaly-detection v0.7.0
+      description: suppression.excludeAdaptiveWorkloads — silence adaptive noise from bursty infra workloads
+    - kind: changed
+      description: appVersion bumped to 0.8.0 (first homolog deploy + per-workload adaptive suppression)

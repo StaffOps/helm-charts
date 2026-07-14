@@ -327,6 +327,12 @@ suppression:
   # -- Namespaces where static rules are suppressed but adaptive still fires
   # (use for batch/cron workloads with unpredictable resource patterns).
   excludeStaticOnly: []
+  # -- Workloads whose ADAPTIVE (EWMA Z-Score) detections are suppressed while
+  # static/log signals still fire. For inherently bursty infra (message brokers,
+  # telemetry collectors, service mesh) that the adaptive detector flags
+  # constantly — the dominant false-positive source. Matched against the workload
+  # extracted from the pod name.
+  excludeAdaptiveWorkloads: []
 
 # =============================================================================
 # Enrichment — context queries fanned out per fired alert

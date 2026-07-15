@@ -4,6 +4,34 @@ All notable changes to the `aigent-squad` Helm chart are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow
 [SemVer](https://semver.org/).
 
+## [0.9.4] - 2026-07-15
+
+### Fixed
+- `servicemonitor.yaml`'s scrape `path` now targets `/metrics/` (trailing
+  slash) instead of `/metrics`. A bare `/metrics` 307-redirects (Starlette
+  `Mount`'s own routing behavior for the mounted metrics sub-app, verified
+  live) — most scrapers follow it fine, but the trailing slash skips the
+  extra hop on every scrape. No `ServiceMonitor`-users were left broken by
+  this (0.9.3's `ServiceMonitor` still worked, just with one redirect per
+  scrape) — this is a follow-up optimization, not a functional fix.
+
+### Added
+- **Optional LibreChat + in-cluster MongoDB sub-chart** (`librechat.enabled`,
+  default `false`) — a minimal, non-production chat UI for the squad's
+  OpenAI-compatible bridge (spec 29), for quick homologation/demo use.
+  `templates/librechat.yaml`: single-pod MongoDB `StatefulSet` (no HA, no
+  auth — same posture as `redis.inCluster`) + a LibreChat `Deployment`
+  pre-wired with a `custom` endpoint pointing at the release's own gateway
+  Service (auto-computed unless `librechat.baseURL` is set). JWT/CREDS
+  secrets auto-generate per install if not supplied (`librechat.jwtSecret`
+  etc. to pin them across upgrades). The API key LibreChat needs to
+  authenticate against the gateway resolves in priority order:
+  `librechat.apiKey` → `librechat.apiKeySecretName` → automatic reuse of the
+  existing `externalSecrets.secrets[]`-provisioned Secret when
+  `externalSecrets.enabled=true`. Not a hardened multi-user LibreChat
+  deployment — for anything beyond quick homologation, run LibreChat
+  separately with production-grade Mongo and secret management.
+
 ## [0.9.3] - 2026-07-15
 
 ### Added

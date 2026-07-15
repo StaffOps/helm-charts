@@ -378,6 +378,67 @@ routing:
 # enabled service (gateway, supervisor), pointed at the existing "http" port
 # + /metrics path — no extra Service or port needed.
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# LibreChat (optional chat UI) + in-cluster MongoDB. OFF by default. Minimal
+# and NOT production-grade on purpose (single Mongo pod, no HA, no auth on
+# Mongo — same posture as redis.inCluster below): this is for quick
+# homologation/demo use against the squad's OpenAI-compatible bridge
+# (spec 29), not a hardened multi-user LibreChat deployment. Run LibreChat
+# separately with its own production Mongo for anything beyond that.
+# -----------------------------------------------------------------------------
+librechat:
+  enabled: false
+  image:
+    repository: ghcr.io/danny-avila/librechat
+    tag: latest
+    pullPolicy: IfNotPresent
+  port: 3080
+  # Public self-registration OFF by default — this is meant as an internal
+  # tool's chat UI, not a public-facing multi-user app.
+  allowRegistration: false
+  # baseURL for LibreChat's custom-endpoint config — LibreChat does NOT
+  # template this field itself, so Helm renders it. Empty (default) = point
+  # at THIS release's own gateway Service automatically
+  # (http://<release>-gateway:<port>/v1). Set explicitly only to point at a
+  # different squad instance.
+  baseURL: ""
+  # API key LibreChat sends as X-Internal-Token — must match the squad's own
+  # INTERNAL_API_TOKEN. Three ways to supply it, checked in order: (1) a
+  # plain value here (fine for local/demo use, avoid for anything real),
+  # (2) apiKeySecretName pointing at your own Secret (key defaults to
+  # INTERNAL_API_TOKEN), (3) automatic — when both are empty and
+  # externalSecrets.enabled=true, reuses the SAME Secret(s) externalSecrets
+  # already provisions for the gateway/supervisor, so no extra credential
+  # wiring is needed in the common case.
+  apiKey: ""
+  apiKeySecretName: ""
+  apiKeySecretKey: "INTERNAL_API_TOKEN"
+  # JWT/CREDS secrets — auto-generated (random) per `helm install` if left
+  # empty. NOT stable across `helm upgrade` unless pinned explicitly here —
+  # fine for a demo tool (existing sessions just get logged out), pin these
+  # if that matters to you.
+  jwtSecret: ""
+  jwtRefreshSecret: ""
+  credsKey: ""
+  credsIv: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  mongodb:
+    image: "mongo:7"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 512Mi
+    persistence:
+      size: 2Gi
+      storageClass: ""
+
 serviceMonitor:
   enabled: false
   # Namespace to create the ServiceMonitor(s) in. Empty = same namespace as

@@ -168,13 +168,14 @@ Path per exposed service is `/<service>` by default; override via `routing.paths
 | `global.securityContext` | non-root, RO rootfs, drop ALL | Restricted container context. |
 | `global.probes.{liveness,readiness}.path` | `/healthz` / `/ready` | Probe paths (spec 07 code target). |
 | `agentsSource.type` | `configmap` | `configmap` (inline) or `git` (initContainer clone). |
-| `agents[]` | 5 agents | Inline `config` + `prompt` per agent. |
+| `agents[]` | 6 agents | Inline `config` + `prompt` per agent. |
 | `redis.host` | `""` | Managed ElastiCache endpoint. |
 | `redis.inCluster.enabled` | `false` | DEV-only in-cluster Redis. |
 | `dynamodb.sessionsTable` | `agent-sessions` | DynamoDB table name. |
 | `routing.type` | `none` | External routing: `none` \| `ingress` \| `gatewayapi`. |
 | `networkPolicy.enabled` | `false` | Specialists accept ingress only from supervisor. |
 | `externalSecrets.enabled` | `false` | Secrets via External Secrets Operator → AWS SM. |
+| `librechat.enabled` | `false` | Optional chat UI + in-cluster MongoDB `StatefulSet` (spec 29 bridge). Minimal, non-production — single Mongo pod, no auth. `baseURL` auto-computes to this release's own gateway Service unless set. API key resolves `apiKey` → `apiKeySecretName` → reuse of `externalSecrets.secrets[]` when enabled. |
 
 ## Secrets
 

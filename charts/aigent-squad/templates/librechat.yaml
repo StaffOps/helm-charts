@@ -1,0 +1,240 @@
+{{- /*
+Optional LibreChat + in-cluster MongoDB — a minimal, non-production chat UI
+for the squad's OpenAI-compatible bridge (spec 29). OFF by default. This is
+NOT a hardened LibreChat deployment: single Mongo pod (no HA, no auth on
+Mongo — same posture as the optional in-cluster Redis above), JWT/CREDS
+secrets auto-generated per-install if not supplied (rotate on every
+`helm install`, stable across `helm upgrade` only if you pin them
+explicitly in values). Good enough for quick homologation/demo use; for
+anything beyond that, run LibreChat separately with its own
+production-grade Mongo and secret management.
+
+Opt-in via librechat.enabled.
+*/ -}}
+{{- if .Values.librechat.enabled }}
+{{- $fullname := include "aigent-squad.fullname" . }}
+{{- $mongoName := printf "%s-librechat-mongo" $fullname }}
+{{- $chatName := printf "%s-librechat" $fullname }}
+{{- $baseURL := .Values.librechat.baseURL | default (printf "http://%s:%v/v1" (include "aigent-squad.serviceFullname" (dict "root" . "name" "gateway")) (dig "gateway" "port" 8000 .Values.services)) }}
+---
+# --- MongoDB (StatefulSet, single pod, no HA — same posture as redis.inCluster) ---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $mongoName }}
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+    app.kubernetes.io/component: librechat-mongo
+spec:
+  serviceName: {{ $mongoName }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: librechat-mongo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: librechat-mongo
+    spec:
+      securityContext:
+        {{- toYaml .Values.global.podSecurityContext | nindent 8 }}
+      containers:
+        - name: mongo
+          image: {{ .Values.librechat.mongodb.image | quote }}
+          ports:
+            - name: mongo
+              containerPort: 27017
+          resources:
+            {{- toYaml .Values.librechat.mongodb.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+          readinessProbe:
+            tcpSocket:
+              port: mongo
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: mongo
+            initialDelaySeconds: 10
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with .Values.librechat.mongodb.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.librechat.mongodb.persistence.size | default "2Gi" | quote }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $mongoName }}
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+    app.kubernetes.io/component: librechat-mongo
+spec:
+  type: ClusterIP
+  ports:
+    - name: mongo
+      port: 27017
+      targetPort: mongo
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: librechat-mongo
+---
+# --- LibreChat's custom-endpoint config (librechat.yaml) ---
+# baseURL is NOT env-templated by LibreChat itself — rendered by Helm here
+# instead (see values.yaml's librechat.baseURL comment for the default).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $chatName }}-config
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+    app.kubernetes.io/component: librechat
+data:
+  librechat.yaml: |
+    version: 1.2.0
+    cache: true
+    endpoints:
+      custom:
+        - name: "AIgent-Squad"
+          baseURL: {{ $baseURL | quote }}
+          apiKey: "${AIGENT_SQUAD_API_KEY}"
+          headers:
+            X-Internal-Token: "${AIGENT_SQUAD_API_KEY}"
+          models:
+            default: ["aigent-squad"]
+            fetch: true
+          titleConvo: true
+          titleModel: "aigent-squad"
+          summarize: false
+          forcePrompt: false
+          modelDisplayLabel: "AIgent-Squad"
+---
+# --- LibreChat's JWT/CREDS secrets — auto-generated per install if unset ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $chatName }}-secrets
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+    app.kubernetes.io/component: librechat
+type: Opaque
+stringData:
+  JWT_SECRET: {{ .Values.librechat.jwtSecret | default (randAlphaNum 64) | quote }}
+  JWT_REFRESH_SECRET: {{ .Values.librechat.jwtRefreshSecret | default (randAlphaNum 64) | quote }}
+  CREDS_KEY: {{ .Values.librechat.credsKey | default (randAlphaNum 64) | quote }}
+  CREDS_IV: {{ .Values.librechat.credsIv | default (randAlphaNum 32) | quote }}
+  {{- if .Values.librechat.apiKey }}
+  AIGENT_SQUAD_API_KEY: {{ .Values.librechat.apiKey | quote }}
+  {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $chatName }}
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+    app.kubernetes.io/component: librechat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: librechat
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: librechat
+      annotations:
+        # Force a rollout when the rendered baseURL changes (the one piece of
+        # the ConfigMap that varies release-to-release). NOT a checksum of
+        # this whole template file — that self-references and infinite-loops
+        # (this file defines its own Deployment).
+        checksum/baseurl: {{ $baseURL | sha256sum }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.global.podSecurityContext | nindent 8 }}
+      containers:
+        - name: librechat
+          image: "{{ .Values.librechat.image.repository }}:{{ .Values.librechat.image.tag }}"
+          imagePullPolicy: {{ .Values.librechat.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.librechat.port }}
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: MONGO_URI
+              value: "mongodb://{{ $mongoName }}:27017/LibreChat"
+            - name: ENDPOINTS
+              value: "custom"
+            - name: ALLOW_REGISTRATION
+              value: {{ .Values.librechat.allowRegistration | quote }}
+            - name: NO_INDEX
+              value: "true"
+          envFrom:
+            - secretRef:
+                name: {{ $chatName }}-secrets
+            {{- if and (not .Values.librechat.apiKey) .Values.librechat.apiKeySecretName }}
+            - secretRef:
+                name: {{ .Values.librechat.apiKeySecretName }}
+            {{- else if and (not .Values.librechat.apiKey) .Values.externalSecrets.enabled }}
+            {{- range .Values.externalSecrets.secrets }}
+            - secretRef:
+                name: {{ .name }}
+            {{- end }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.librechat.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.global.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/librechat.yaml
+              subPath: librechat.yaml
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+      volumes:
+        - name: config
+          configMap:
+            name: {{ $chatName }}-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $chatName }}
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+    app.kubernetes.io/component: librechat
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.librechat.port }}
+      targetPort: http
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: librechat
+{{- end }}

@@ -36,7 +36,12 @@ spec:
   {{- end }}
   endpoints:
     - port: http
-      path: /metrics
+      # Trailing slash deliberate: a bare "/metrics" 307-redirects to
+      # "/metrics/" (Starlette Mount's own routing behavior for the app's
+      # mounted sub-app — verified live 2026-07-15). Most Prometheus/VM
+      # scrapers follow redirects fine either way, but hitting the real
+      # path directly skips the extra hop on every single scrape.
+      path: /metrics/
       interval: {{ $root.Values.serviceMonitor.interval }}
       scrapeTimeout: {{ $root.Values.serviceMonitor.scrapeTimeout }}
 {{- end }}

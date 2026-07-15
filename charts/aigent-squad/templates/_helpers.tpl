@@ -127,6 +127,12 @@ Call with the root context ($). Includes global.env + OTel + backing services.
 {{- if .Values.global.otel.enabled }}
 - name: OTEL_EXPORTER_OTLP_ENDPOINT
   value: {{ .Values.global.otel.endpoint | quote }}
+{{- if .Values.global.otel.metricsPrometheusScrape }}
+- name: OTEL_METRICS_EXPORTER
+  value: "otlp,prometheus"
+- name: OTEL_HELPER_METRICS_PORT
+  value: "0"
+{{- end }}
 {{- end }}
 {{- end }}
 

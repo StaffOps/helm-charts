@@ -1,0 +1,44 @@
+{{/*
+ServiceMonitor per enabled service — Prometheus Operator CRD, only rendered
+when serviceMonitor.enabled=true (the CRD isn't guaranteed to exist on every
+cluster). Requires global.otel.metricsPrometheusScrape=true (the app only
+exposes /metrics when that's on — see _helpers.tpl's env block) — a
+ServiceMonitor pointed at a service that isn't actually serving /metrics
+would just generate scrape-failure noise, so gate on both.
+*/}}
+{{- if and .Values.serviceMonitor.enabled .Values.global.otel.metricsPrometheusScrape }}
+{{- $root := . -}}
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.enabled }}
+{{- $ctx := dict "root" $root "name" $name }}
+{{- $fullname := include "aigent-squad.serviceFullname" $ctx }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $fullname }}
+  {{- if $root.Values.serviceMonitor.namespace }}
+  namespace: {{ $root.Values.serviceMonitor.namespace }}
+  {{- end }}
+  labels:
+    {{- include "aigent-squad.serviceLabels" $ctx | nindent 4 }}
+    {{- with $root.Values.serviceMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "aigent-squad.selectorLabels" $ctx | nindent 6 }}
+  {{- if $root.Values.serviceMonitor.namespace }}
+  namespaceSelector:
+    matchNames:
+      - {{ $root.Release.Namespace }}
+  {{- end }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ $root.Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ $root.Values.serviceMonitor.scrapeTimeout }}
+{{- end }}
+{{- end }}
+{{- end }}

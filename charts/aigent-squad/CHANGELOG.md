@@ -4,6 +4,22 @@ All notable changes to the `aigent-squad` Helm chart are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow
 [SemVer](https://semver.org/).
 
+## [0.9.3] - 2026-07-15
+
+### Added
+- **Prometheus `/metrics` direct-scrape support**, pairing with the app's
+  bump to `otel-helper` v0.2.0+ (which can run the OTLP push exporter and a
+  Prometheus exporter on the same MeterProvider). New
+  `global.otel.metricsPrometheusScrape` (default `true`) sets
+  `OTEL_METRICS_EXPORTER=otlp,prometheus` + `OTEL_HELPER_METRICS_PORT=0` so
+  each service mounts `/metrics` on its own app port instead of otel-helper's
+  standalone listener (which can't bind under multi-worker servers).
+- New `serviceMonitor.*` values block (default `enabled: false` — the
+  Prometheus Operator CRD isn't guaranteed to exist on every cluster) and
+  `templates/servicemonitor.yaml`: one `ServiceMonitor` per enabled service,
+  targeting the existing `http` port + `/metrics` path. No new Service or
+  port — reuses what's already there.
+
 ## [0.9.2] - 2026-07-02
 
 ### Changed

@@ -44,6 +44,13 @@ global:
   otel:
     enabled: true
     endpoint: "http://otel-collector.monitoring:4317"
+    # otel-helper v0.2.0+ can run the OTLP push exporter (traces/logs/metrics
+    # via the collector, above) AND a Prometheus /metrics exporter on the
+    # SAME MeterProvider. When true, each service's app mounts /metrics on
+    # its own port (src/gateway/main.py, src/supervisor/server.py) for
+    # direct Prometheus/VictoriaMetrics scrape — pairs with
+    # `serviceMonitor.enabled` below to actually get scraped.
+    metricsPrometheusScrape: true
 
   # Extra labels applied to every workload/pod. Empty by default — the chart
   # imposes no org-specific labels. Add whatever your platform requires
@@ -363,6 +370,27 @@ routing:
 # NetworkPolicy global toggle (per-service rules under services.<name>.networkPolicy)
 # When enabled, specialist services only accept ingress from the supervisor.
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# ServiceMonitor (Prometheus Operator CRD). OFF by default — the CRD isn't
+# guaranteed to exist on every cluster, and the app must also be actually
+# exposing /metrics (global.otel.metricsPrometheusScrape=true, the default)
+# for a ServiceMonitor to have anything to scrape. One ServiceMonitor per
+# enabled service (gateway, supervisor), pointed at the existing "http" port
+# + /metrics path — no extra Service or port needed.
+# -----------------------------------------------------------------------------
+serviceMonitor:
+  enabled: false
+  # Namespace to create the ServiceMonitor(s) in. Empty = same namespace as
+  # the release (most common). Set explicitly if your Prometheus Operator's
+  # ServiceMonitorNamespaceSelector requires a specific namespace (e.g. a
+  # dedicated `monitoring` namespace) — namespaceSelector is then set to the
+  # release namespace so Prometheus still finds it.
+  namespace: ""
+  interval: "30s"
+  scrapeTimeout: "10s"
+  additionalLabels: {}
+    # release: prometheus   # common requirement: match the Prometheus CR's own selector
+
 networkPolicy:
   enabled: false
   # label selector identifying the ingress controller namespace (for supervisor/mcp)

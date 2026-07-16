@@ -83,7 +83,12 @@ spec:
     - metadata:
         name: data
         labels:
-          {{- include "staffops-ad.redis.labels" . | nindent 10 }}
+          # volumeClaimTemplates is immutable after StatefulSet creation — using
+          # the full label set (which includes app.kubernetes.io/version and
+          # helm.sh/chart, both bumped on every release) breaks every future
+          # `helm upgrade` with a Kubernetes "Forbidden: updates to statefulset
+          # spec ... are forbidden" error. Selector labels only; they never change.
+          {{- include "staffops-ad.redis.selectorLabels" . | nindent 10 }}
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:

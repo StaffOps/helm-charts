@@ -11,7 +11,7 @@ type: application
 
 # Chart version follows the chart's own SemVer (independent of appVersion).
 # Bump on every chart change. Keep MAJOR/MINOR aligned with breaking values.yaml changes.
-version: 0.3.0
+version: 0.3.1
 
 # appVersion tracks the upstream anomaly-detection controller release.
 # Bump when the default container image tag changes.
@@ -43,6 +43,8 @@ annotations:
   artifacthub.io/category: monitoring-logging
   artifacthub.io/license: Apache-2.0
   artifacthub.io/changes: |
+    - kind: fixed
+      description: redis volumeClaimTemplates now uses selector-only labels — the previous full label set (app.kubernetes.io/version, helm.sh/chart) is immutable-field-breaking on every chart version bump, causing `helm upgrade` to fail with a StatefulSet "Forbidden" error
     - kind: removed
       description: vmServiceScrape — vm-operator honors the standard ServiceMonitor CRD directly; serviceMonitor.enabled is now the single scrape toggle
     - kind: changed

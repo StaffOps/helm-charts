@@ -249,6 +249,53 @@ entries:
       artifacthub.io/category: monitoring-logging
       artifacthub.io/changes: |
         - kind: fixed
+          description: ServiceMonitor now sets honorLabels — without it, the scrape target's own namespace overwrote the workload-level `namespace` label anomalies carry (renaming the real value to exported_namespace and collapsing every series to the controller's own namespace)
+        - kind: fixed
+          description: redis volumeClaimTemplates now uses selector-only labels — the previous full label set (app.kubernetes.io/version, helm.sh/chart) is immutable-field-breaking on every chart version bump, causing `helm upgrade` to fail with a StatefulSet "Forbidden" error
+        - kind: removed
+          description: vmServiceScrape — vm-operator honors the standard ServiceMonitor CRD directly; serviceMonitor.enabled is now the single scrape toggle
+        - kind: changed
+          description: appVersion bumped to 0.9.0 (controller/worker metrics moved to the OTel Metrics API, staffops-otel-libs/go 0.2.0; app no longer emits a cluster label — scrape-layer only)
+        - kind: added
+          description: suppression.excludeAdaptiveWorkloads — silence adaptive noise from bursty infra workloads
+        - kind: changed
+          description: appVersion bumped to 0.8.0 (first homolog deploy + per-workload adaptive suppression)
+      artifacthub.io/license: Apache-2.0
+    apiVersion: v2
+    appVersion: 0.9.0
+    created: "2026-07-16T20:34:15.124237631Z"
+    description: 'Distributed anomaly detection for Kubernetes clusters. Combines
+      adaptive statistical detection (Go controller + workers) with ML-based forecasting
+      and multivariate analysis (Python). Consumes metrics from any Prometheus-compatible
+      TSDB (Prometheus, Thanos, Cortex, VictoriaMetrics, ...) and logs from Loki,
+      fires correlated alerts via Alertmanager. '
+    digest: 46ca8b98b3f6b886668ea5e146bcddf3b4c776bb6d7234afd6732aafcb8f7cbb
+    home: https://staffops.github.io/anomaly-detection/
+    icon: https://avatars.githubusercontent.com/u/66139348?s=200&v=4
+    keywords:
+    - anomaly-detection
+    - observability
+    - sre
+    - prometheus
+    - loki
+    - alertmanager
+    - machine-learning
+    kubeVersion: '>=1.24.0-0'
+    maintainers:
+    - name: StaffOps Contributors
+      url: https://github.com/StaffOps
+    name: anomaly-detection
+    sources:
+    - https://github.com/StaffOps/staffops-anomaly-detection
+    - https://github.com/StaffOps/helm-charts
+    type: application
+    urls:
+    - https://github.com/StaffOps/helm-charts/releases/download/anomaly-detection-0.3.2/anomaly-detection-0.3.2.tgz
+    version: 0.3.2
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: fixed
           description: redis volumeClaimTemplates now uses selector-only labels — the previous full label set (app.kubernetes.io/version, helm.sh/chart) is immutable-field-breaking on every chart version bump, causing `helm upgrade` to fail with a StatefulSet "Forbidden" error
         - kind: removed
           description: vmServiceScrape — vm-operator honors the standard ServiceMonitor CRD directly; serviceMonitor.enabled is now the single scrape toggle
@@ -408,4 +455,4 @@ entries:
     urls:
     - https://github.com/StaffOps/helm-charts/releases/download/anomaly-detection-0.1.0/anomaly-detection-0.1.0.tgz
     version: 0.1.0
-generated: "2026-07-16T17:00:25.26551763Z"
+generated: "2026-07-16T20:34:15.124282925Z"

@@ -50,8 +50,6 @@ redis:
 # we don't install in a vanilla kind cluster.
 serviceMonitor:
   enabled: false
-vmServiceScrape:
-  enabled: false
 prometheusRule:
   enabled: false
 grafanaDashboard:

@@ -385,16 +385,12 @@ serviceAccount:
 # Observability integrations (all optional, all OFF by default)
 # =============================================================================
 serviceMonitor:
-  # -- Create a Prometheus Operator ServiceMonitor for /metrics scraping.
+  # -- Create a ServiceMonitor for /metrics scraping. vm-operator honors this
+  # CRD natively (no separate VMServiceScrape needed), so this is the single
+  # vendor-neutral scrape mechanism for both Prometheus Operator and VM clusters.
   enabled: false
   interval: 30s
   scrapeTimeout: 10s
-  labels: {}
-
-vmServiceScrape:
-  # -- Create a vm-operator VMServiceScrape (preferred over ServiceMonitor on VM clusters).
-  enabled: false
-  interval: 30s
   labels: {}
 
 prometheusRule:

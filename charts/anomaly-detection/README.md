@@ -49,7 +49,7 @@ graph LR
 - Kubernetes ≥ 1.24
 - Helm ≥ 3.10
 - Reachable Prometheus-compatible (Prometheus/Thanos/Cortex/VictoriaMetrics), Loki, and Alertmanager endpoints (the chart does NOT install them)
-- Optional: Prometheus Operator (for PrometheusRule + ServiceMonitor), vm-operator (for VMServiceScrape), Grafana sidecar (for dashboard discovery)
+- Optional: Prometheus Operator or vm-operator (both honor the ServiceMonitor CRD) for PrometheusRule + ServiceMonitor, Grafana sidecar (for dashboard discovery)
 
 ## Installation
 
@@ -89,7 +89,7 @@ redis:
     addr: redis-prd.cache.amazonaws.com:6379
     existingSecret: redis-credentials
 
-vmServiceScrape:
+serviceMonitor:
   enabled: true
 
 prometheusRule:
@@ -183,8 +183,7 @@ See `values.yaml` for the full schema with comments. Key values:
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `serviceMonitor.enabled` | `false` | Prometheus Operator ServiceMonitor |
-| `vmServiceScrape.enabled` | `false` | vm-operator VMServiceScrape |
+| `serviceMonitor.enabled` | `false` | ServiceMonitor for /metrics scraping (Prometheus Operator and vm-operator both honor this CRD) |
 | `prometheusRule.enabled` | `false` | PrometheusRule (health alerts + recording rules) |
 | `grafanaDashboard.enabled` | `false` | ConfigMap labelled for Grafana sidecar discovery |
 

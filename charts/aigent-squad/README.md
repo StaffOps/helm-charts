@@ -54,7 +54,10 @@ The image `karlipegomes/aigent-squad` is built and published to Docker Hub by
 the project's CI/CD pipeline (multi-arch: amd64 + arm64), versioned by
 `Chart.appVersion` (don't hardcode a tag). Local development overrides
 `global.image.registry` to a Harbor project (Harbor is used locally only);
-GitHub CI keeps publishing to Docker Hub unchanged.
+GitHub CI keeps publishing to Docker Hub unchanged. `Chart.appVersion` tracks
+the app repo's own release tags (currently `0.4.0`, chart `0.9.5+`) — bump it
+here whenever a new app tag is cut, so a fresh `helm install`/`upgrade`
+without an explicit tag override always resolves to the latest coherent pair.
 
 For production, override IRSA role ARNs, the ingress host, the ElastiCache
 endpoint, and the SecretStore via `--set` or a custom values file. Deploy via ArgoCD.

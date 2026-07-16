@@ -4,6 +4,16 @@ All notable changes to the `aigent-squad` Helm chart are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow
 [SemVer](https://semver.org/).
 
+## [0.9.5] - 2026-07-16
+
+### Changed
+- `appVersion` `0.3.0` → `0.4.0`, restoring coherence with the app tag
+  actually published (spec-34's `RELEASE.md` cut `v0.4.0` on 2026-07-15;
+  this chart bump follows to close BACKLOG B-25's chart-side gap — see
+  `RELEASE.md` Phase 3). No template/values changes; `global.image.registry`
+  default (`""`) + `repository: karlipegomes/aigent-squad` already resolve
+  to the public Docker Hub tag, `karlipegomes/aigent-squad:0.4.0`.
+
 ## [0.9.4] - 2026-07-15
 
 ### Fixed

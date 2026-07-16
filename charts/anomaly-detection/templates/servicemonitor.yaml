@@ -25,4 +25,10 @@ spec:
       interval: {{ .Values.serviceMonitor.interval | default "30s" }}
       scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout | default "10s" }}
       path: /metrics
+      # Metrics carry their own `namespace` label (the monitored workload's
+      # namespace, e.g. from AnomalyByWorkload) — without honorLabels, the
+      # scrape target's own namespace (wherever this pod runs) overwrites it,
+      # renaming the real value to `exported_namespace` and collapsing every
+      # series to a single namespace. honorLabels lets the metric's label win.
+      honorLabels: true
 {{- end }}

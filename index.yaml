@@ -248,6 +248,49 @@ entries:
   - annotations:
       artifacthub.io/category: monitoring-logging
       artifacthub.io/changes: |
+        - kind: removed
+          description: vmServiceScrape — vm-operator honors the standard ServiceMonitor CRD directly; serviceMonitor.enabled is now the single scrape toggle
+        - kind: changed
+          description: appVersion bumped to 0.9.0 (controller/worker metrics moved to the OTel Metrics API, staffops-otel-libs/go 0.2.0; app no longer emits a cluster label — scrape-layer only)
+        - kind: added
+          description: suppression.excludeAdaptiveWorkloads — silence adaptive noise from bursty infra workloads
+        - kind: changed
+          description: appVersion bumped to 0.8.0 (first homolog deploy + per-workload adaptive suppression)
+      artifacthub.io/license: Apache-2.0
+    apiVersion: v2
+    appVersion: 0.9.0
+    created: "2026-07-16T16:02:28.25435094Z"
+    description: 'Distributed anomaly detection for Kubernetes clusters. Combines
+      adaptive statistical detection (Go controller + workers) with ML-based forecasting
+      and multivariate analysis (Python). Consumes metrics from any Prometheus-compatible
+      TSDB (Prometheus, Thanos, Cortex, VictoriaMetrics, ...) and logs from Loki,
+      fires correlated alerts via Alertmanager. '
+    digest: f4e5adb83fa754390b903ffbb1bc280ba05ac409d07edb8673939d5050ab6a92
+    home: https://staffops.github.io/anomaly-detection/
+    icon: https://avatars.githubusercontent.com/u/66139348?s=200&v=4
+    keywords:
+    - anomaly-detection
+    - observability
+    - sre
+    - prometheus
+    - loki
+    - alertmanager
+    - machine-learning
+    kubeVersion: '>=1.24.0-0'
+    maintainers:
+    - name: StaffOps Contributors
+      url: https://github.com/StaffOps
+    name: anomaly-detection
+    sources:
+    - https://github.com/StaffOps/staffops-anomaly-detection
+    - https://github.com/StaffOps/helm-charts
+    type: application
+    urls:
+    - https://github.com/StaffOps/helm-charts/releases/download/anomaly-detection-0.3.0/anomaly-detection-0.3.0.tgz
+    version: 0.3.0
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
         - kind: added
           description: suppression.excludeAdaptiveWorkloads — silence adaptive noise from bursty infra workloads
         - kind: changed
@@ -320,4 +363,4 @@ entries:
     urls:
     - https://github.com/StaffOps/helm-charts/releases/download/anomaly-detection-0.1.0/anomaly-detection-0.1.0.tgz
     version: 0.1.0
-generated: "2026-07-16T03:14:55.259556324Z"
+generated: "2026-07-16T16:02:28.254382729Z"

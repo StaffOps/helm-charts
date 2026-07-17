@@ -179,6 +179,15 @@ See `values.yaml` for the full schema with comments. Key values:
 | `detection.adaptiveMetrics` | Adaptive (Z-Score) metric rules |
 | `detection.logPatterns` | Loki-based log rate detection |
 
+> **Multi-cluster deployments**: if `datasources.prometheus`/`datasources.loki`
+> point at a federated backend spanning multiple K8s clusters, include
+> `cluster` in every rule's `by()`/`group_by` (and in every
+> `enrichment.podBundle`/`serviceBundle` query's label matcher) — the chart's
+> own defaults do this already. Omitting it collapses every cluster's series
+> into one and can make identically-named pods in different clusters
+> incorrectly correlate as the same workload. See the app's
+> [Detection Rules](https://github.com/StaffOps/staffops-anomaly-detection/blob/main/docs/site/configuration/rules.md) guide.
+
 ### Observability integrations
 
 | Key | Default | Description |

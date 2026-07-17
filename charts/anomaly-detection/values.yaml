@@ -271,20 +271,20 @@ detection:
   staticRules:
     - name: high_cpu_ratio
       query: |-
-        max(rate(container_cpu_usage_seconds_total{container!=""}[1m])) by (namespace, pod)
-        / max(kube_pod_container_resource_limits{resource="cpu"}) by (namespace, pod)
+        max(rate(container_cpu_usage_seconds_total{container!=""}[1m])) by (cluster, namespace, pod)
+        / max(kube_pod_container_resource_limits{resource="cpu"}) by (cluster, namespace, pod)
       threshold: 0.9
       operator: ">"
       severity: warning
     - name: high_restart_rate
-      query: max(increase(kube_pod_container_status_restarts_total[5m])) by (namespace, pod)
+      query: max(increase(kube_pod_container_status_restarts_total[5m])) by (cluster, namespace, pod)
       threshold: 3
       operator: ">"
       severity: critical
     - name: high_memory_ratio
       query: |-
-        max(container_memory_working_set_bytes{container!=""}) by (namespace, pod)
-        / max(kube_pod_container_resource_limits{resource="memory"}) by (namespace, pod)
+        max(container_memory_working_set_bytes{container!=""}) by (cluster, namespace, pod)
+        / max(kube_pod_container_resource_limits{resource="memory"}) by (cluster, namespace, pod)
       threshold: 0.85
       operator: ">"
       severity: warning
@@ -292,17 +292,17 @@ detection:
   # -- Adaptive metrics evaluated with EWMA + Z-Score.
   adaptiveMetrics:
     - name: cpu_by_workload
-      query: max(rate(container_cpu_usage_seconds_total{container!=""}[1m])) by (namespace, pod)
-      group_by: [namespace, pod]
+      query: max(rate(container_cpu_usage_seconds_total{container!=""}[1m])) by (cluster, namespace, pod)
+      group_by: [cluster, namespace, pod]
     - name: error_rate_by_service
-      query: sum(rate(spanmetrics_apm_calls_total{status_code="STATUS_CODE_ERROR"}[1m])) by (service_name)
-      group_by: [service_name]
+      query: sum(rate(spanmetrics_apm_calls_total{status_code="STATUS_CODE_ERROR"}[1m])) by (cluster, service_name)
+      group_by: [cluster, service_name]
 
   # -- Log-based detection (Loki).
   logPatterns:
     - name: error_rate_by_namespace
-      query: sum(rate({service_namespace=~".+"} |= "error" [1m])) by (service_namespace)
-      group_by: [service_namespace]
+      query: sum(rate({service_namespace=~".+"} |= "error" [1m])) by (cluster, service_namespace)
+      group_by: [cluster, service_namespace]
 
   # -- K8s event reasons that trigger detection.
   eventPatterns:
@@ -345,17 +345,17 @@ enrichment:
   # -- Pod-level enrichment bundle.
   podBundle:
     - name: cpu_ratio
-      query: 'max(rate(container_cpu_usage_seconds_total{namespace="$namespace",pod="$pod",container!=""}[1m])) / max(kube_pod_container_resource_limits{resource="cpu",namespace="$namespace",pod="$pod"})'
+      query: 'max(rate(container_cpu_usage_seconds_total{cluster="$cluster",namespace="$namespace",pod="$pod",container!=""}[1m])) / max(kube_pod_container_resource_limits{resource="cpu",cluster="$cluster",namespace="$namespace",pod="$pod"})'
     - name: memory_ratio
-      query: 'max(container_memory_working_set_bytes{namespace="$namespace",pod="$pod",container!=""}) / max(kube_pod_container_resource_limits{resource="memory",namespace="$namespace",pod="$pod"})'
+      query: 'max(container_memory_working_set_bytes{cluster="$cluster",namespace="$namespace",pod="$pod",container!=""}) / max(kube_pod_container_resource_limits{resource="memory",cluster="$cluster",namespace="$namespace",pod="$pod"})'
     - name: restarts_5m
-      query: 'max(increase(kube_pod_container_status_restarts_total{namespace="$namespace",pod="$pod"}[5m]))'
+      query: 'max(increase(kube_pod_container_status_restarts_total{cluster="$cluster",namespace="$namespace",pod="$pod"}[5m]))'
   # -- Service-level enrichment bundle.
   serviceBundle:
     - name: error_rate_1m
-      query: 'sum(rate(spanmetrics_apm_calls_total{service_name="$service_name",status_code="STATUS_CODE_ERROR"}[1m]))'
+      query: 'sum(rate(spanmetrics_apm_calls_total{cluster="$cluster",service_name="$service_name",status_code="STATUS_CODE_ERROR"}[1m]))'
     - name: latency_p99_5m
-      query: 'histogram_quantile(0.99, sum(rate(spanmetrics_apm_duration_milliseconds_bucket{service_name="$service_name"}[5m])) by (le))'
+      query: 'histogram_quantile(0.99, sum(rate(spanmetrics_apm_duration_milliseconds_bucket{cluster="$cluster",service_name="$service_name"}[5m])) by (le))'
 
 # =============================================================================
 # Alert deep links — annotations rendered into alert payloads

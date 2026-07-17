@@ -11,11 +11,11 @@ type: application
 
 # Chart version follows the chart's own SemVer (independent of appVersion).
 # Bump on every chart change. Keep MAJOR/MINOR aligned with breaking values.yaml changes.
-version: 0.3.2
+version: 0.3.3
 
 # appVersion tracks the upstream anomaly-detection controller release.
 # Bump when the default container image tag changes.
-appVersion: "0.9.0"
+appVersion: "0.10.0"
 
 kubeVersion: ">=1.24.0-0"
 
@@ -43,6 +43,10 @@ annotations:
   artifacthub.io/category: monitoring-logging
   artifacthub.io/license: Apache-2.0
   artifacthub.io/changes: |
+    - kind: changed
+      description: appVersion bumped to 0.10.0 (real per-workload `cluster` now propagates through detection, correlation, alerting, and enrichment — this deployment queries a federated multi-cluster VictoriaMetrics/Loki, and every anomaly is now attributed to its own monitored cluster instead of collapsing to the controller's own CLUSTER_NAME)
+    - kind: fixed
+      description: values.yaml's default detection.staticRules/adaptiveMetrics/logPatterns and enrichment.podBundle/serviceBundle now include `cluster` in every by()/group_by/query filter — this is the actual deployed rule set (ConfigMap renders from these values, not from the app repo's controller/config.yaml), so it was silently out of sync with the 0.10.0 controller's cluster-aware code
     - kind: fixed
       description: ServiceMonitor now sets honorLabels — without it, the scrape target's own namespace overwrote the workload-level `namespace` label anomalies carry (renaming the real value to exported_namespace and collapsing every series to the controller's own namespace)
     - kind: fixed

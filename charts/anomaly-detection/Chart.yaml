@@ -11,11 +11,11 @@ type: application
 
 # Chart version follows the chart's own SemVer (independent of appVersion).
 # Bump on every chart change. Keep MAJOR/MINOR aligned with breaking values.yaml changes.
-version: 0.3.3
+version: 0.4.0
 
 # appVersion tracks the upstream anomaly-detection controller release.
 # Bump when the default container image tag changes.
-appVersion: "0.10.0"
+appVersion: "0.11.0"
 
 kubeVersion: ">=1.24.0-0"
 
@@ -44,7 +44,11 @@ annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/changes: |
     - kind: changed
-      description: appVersion bumped to 0.10.0 (real per-workload `cluster` now propagates through detection, correlation, alerting, and enrichment — this deployment queries a federated multi-cluster VictoriaMetrics/Loki, and every anomaly is now attributed to its own monitored cluster instead of collapsing to the controller's own CLUSTER_NAME)
+      description: appVersion bumped to 0.11.0 — FDR (Benjamini-Hochberg) now corrects over the full adaptive test family (workers report adaptive_series_tested), direction-of-badness lets adaptive rules fire only in the declared bad direction, dead rules dropped + rate() windows widened to [2m], and a full VictoriaMetrics→Prometheus terminology sweep
+    - kind: added
+      description: adaptiveMetrics support an optional `direction` field (up_bad|down_bad|both_bad, default both_bad) — passed through to the controller which drops harmless-direction firings before FDR
+    - kind: changed
+      description: appVersion bumped to 0.10.0 (real per-workload `cluster` now propagates through detection, correlation, alerting, and enrichment — this deployment queries a federated multi-cluster Prometheus/Loki, and every anomaly is now attributed to its own monitored cluster instead of collapsing to the controller's own CLUSTER_NAME)
     - kind: fixed
       description: values.yaml's default detection.staticRules/adaptiveMetrics/logPatterns and enrichment.podBundle/serviceBundle now include `cluster` in every by()/group_by/query filter — this is the actual deployed rule set (ConfigMap renders from these values, not from the app repo's controller/config.yaml), so it was silently out of sync with the 0.10.0 controller's cluster-aware code
     - kind: fixed

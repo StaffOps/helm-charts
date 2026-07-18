@@ -1,8 +1,8 @@
 # anomaly-detection
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square)
+![Version: 0.4.0](https://img.shields.io/badge/Version-0.4.0-informational?style=flat-square)
 ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
-![AppVersion: 0.7.0](https://img.shields.io/badge/AppVersion-0.7.0-informational?style=flat-square)
+![AppVersion: 0.11.0](https://img.shields.io/badge/AppVersion-0.11.0-informational?style=flat-square)
 
 Distributed anomaly detection for Kubernetes clusters. Combines adaptive statistical detection (Go controller + workers) with ML-based forecasting and multivariate analysis (Python).
 
@@ -29,7 +29,7 @@ The chart deploys five components:
 | Component | Replicas | Purpose |
 |-----------|----------|---------|
 | Controller | 2 (HA via Lease) | Schedules detection cycles, correlates anomalies, fires alerts |
-| Workers | 3 (stateless) | Execute VM/Loki queries and detection algorithms |
+| Workers | 3 (stateless) | Execute Prometheus/Loki queries and detection algorithms |
 | ML service | 1 | Isolation Forest multivariate + Prophet forecasting |
 | Redis | 1 (optional) | Baselines, dedup TTL, seasonal profiles |
 
@@ -229,7 +229,7 @@ curl -s localhost:8080/metrics | grep staffops_ad_controller_cycles_total
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `/readyz` returns 503 | Datasource unreachable | Check controller logs for which probe failed (VM/Loki/AM) |
+| `/readyz` returns 503 | Datasource unreachable | Check controller logs for which probe failed (Prometheus/Loki/AM) |
 | No anomalies after 30 min | Baselines still warming up | Wait for `warm_up_samples * job_interval` (default 30 min) |
 | Both controllers running cycles | Leader election misconfigured | Check `controller_is_leader` metric and Role/RoleBinding |
 | Workers `connectivity = TransientFailure` | gRPC service discovery broken | Check headless service has `clusterIP: None` |

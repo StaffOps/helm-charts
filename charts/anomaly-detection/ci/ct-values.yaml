@@ -1,7 +1,7 @@
 # Values used by chart-testing (ct) in CI when validating the chart on a kind
 # cluster. Just-enough config to make `helm template` and `helm install`
 # succeed — no attempt to actually exercise the detection cycle (that would
-# need real VM/Loki backends).
+# need real Prometheus/Loki backends).
 #
 # Override the required datasource URLs with placeholder values so `required`
 # template guards pass. Reduce replicas to 1 to keep the kind cluster light.

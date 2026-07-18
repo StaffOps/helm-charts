@@ -36,8 +36,8 @@ datasources:
   prometheus:
     # -- Prometheus-compatible read endpoint (PromQL). Works with any backend
     # that speaks the Prometheus HTTP API — Prometheus, Thanos, Cortex, Mimir,
-    # VictoriaMetrics, etc. For VictoriaMetrics this ends with the prometheus
-    # path (e.g. `https://<host>/select/0/prometheus`).
+    # etc. Some backends append a query path (e.g.
+    # `https://<host>/select/0/prometheus`).
     url: ""
     timeout: 30s
   loki:
@@ -269,9 +269,11 @@ redis:
 detection:
   # -- Static threshold rules.
   staticRules:
+    # rate() windows are [2m]: the org scrape interval is 30s and rate() needs
+    # ≥4× the scrape interval to survive a missed scrape.
     - name: high_cpu_ratio
       query: |-
-        max(rate(container_cpu_usage_seconds_total{container!=""}[1m])) by (cluster, namespace, pod)
+        max(rate(container_cpu_usage_seconds_total{container!=""}[2m])) by (cluster, namespace, pod)
         / max(kube_pod_container_resource_limits{resource="cpu"}) by (cluster, namespace, pod)
       threshold: 0.9
       operator: ">"
@@ -292,16 +294,16 @@ detection:
   # -- Adaptive metrics evaluated with EWMA + Z-Score.
   adaptiveMetrics:
     - name: cpu_by_workload
-      query: max(rate(container_cpu_usage_seconds_total{container!=""}[1m])) by (cluster, namespace, pod)
+      query: max(rate(container_cpu_usage_seconds_total{container!=""}[2m])) by (cluster, namespace, pod)
       group_by: [cluster, namespace, pod]
     - name: error_rate_by_service
-      query: sum(rate(spanmetrics_apm_calls_total{status_code="STATUS_CODE_ERROR"}[1m])) by (cluster, service_name)
+      query: sum(rate(spanmetrics_apm_calls_total{status_code="STATUS_CODE_ERROR"}[2m])) by (cluster, service_name)
       group_by: [cluster, service_name]
 
   # -- Log-based detection (Loki).
   logPatterns:
     - name: error_rate_by_namespace
-      query: sum(rate({service_namespace=~".+"} |= "error" [1m])) by (cluster, service_namespace)
+      query: sum(rate({service_namespace=~".+"} |= "error" [2m])) by (cluster, service_namespace)
       group_by: [cluster, service_namespace]
 
   # -- K8s event reasons that trigger detection.
@@ -385,9 +387,9 @@ serviceAccount:
 # Observability integrations (all optional, all OFF by default)
 # =============================================================================
 serviceMonitor:
-  # -- Create a ServiceMonitor for /metrics scraping. vm-operator honors this
-  # CRD natively (no separate VMServiceScrape needed), so this is the single
-  # vendor-neutral scrape mechanism for both Prometheus Operator and VM clusters.
+  # -- Create a ServiceMonitor for /metrics scraping. Prometheus-Operator-compatible
+  # operators honor this CRD natively (no separate scrape CRD needed), so this is
+  # the single vendor-neutral scrape mechanism across those clusters.
   enabled: false
   interval: 30s
   scrapeTimeout: 10s
@@ -395,8 +397,8 @@ serviceMonitor:
 
 prometheusRule:
   # -- Create a Prometheus Operator PrometheusRule with health alerts and
-  # recording rules (top noisy workloads). Portable across Prometheus, VM
-  # (vmalertmanager scrapes PrometheusRule via the operator), and Thanos.
+  # recording rules (top noisy workloads). Portable across any
+  # Prometheus-Operator-compatible backend (Prometheus, Thanos, ...).
   enabled: false
   namespace: ""        # defaults to release namespace
   additionalLabels: {}

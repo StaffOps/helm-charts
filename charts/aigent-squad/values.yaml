@@ -393,6 +393,25 @@ librechat:
     tag: latest
     pullPolicy: IfNotPresent
   port: 3080
+  # External route for the UI (Istio GatewayAPI HTTPRoute). Only honored when
+  # the top-level routing.type == gatewayapi. parentRef defaults to the
+  # release's routing.gatewayapi.parentRef (same gateway as the squad) unless
+  # overridden here. Disabled by default → ClusterIP only (port-forward).
+  route:
+    enabled: false
+    host: ""
+    pathType: PathPrefix
+    path: /
+    # Override the gateway parentRef; empty inherits routing.gatewayapi.parentRef.
+    # Shape: { name, namespace, sectionName }
+    parentRef: {}
+    # Annotations/labels for the HTTPRoute. Set the external-dns hostname
+    # annotation here (same convention as the gateway route's
+    # routing.gatewayapi.annotations), e.g.
+    #   annotations:
+    #     external-dns.alpha.kubernetes.io/hostname: <route.host>
+    annotations: {}
+    labels: {}
   # Public self-registration OFF by default — this is meant as an internal
   # tool's chat UI, not a public-facing multi-user app.
   allowRegistration: false
@@ -423,18 +442,18 @@ librechat:
   credsIv: ""
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
+      cpu: 250m
       memory: 512Mi
+    limits:
+      memory: 1Gi
   mongodb:
     image: "mongo:7"
     resources:
       requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
+        cpu: 250m
         memory: 512Mi
+      limits:
+        memory: 1Gi
     persistence:
       size: 2Gi
       storageClass: ""

@@ -183,18 +183,24 @@ spec:
               value: {{ .Values.librechat.allowRegistration | quote }}
             - name: NO_INDEX
               value: "true"
+            {{- /* LibreChat's config references ${AIGENT_SQUAD_API_KEY}; map it
+                   explicitly from the token secret. envFrom would expose the
+                   secret's own key name (e.g. INTERNAL_API_TOKEN), which does
+                   NOT match, so an explicit rename via secretKeyRef is required. */}}
+            {{- if and (not .Values.librechat.apiKey) (or .Values.librechat.apiKeySecretName .Values.externalSecrets.enabled) }}
+            - name: AIGENT_SQUAD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.librechat.apiKeySecretName }}
+                  name: {{ .Values.librechat.apiKeySecretName }}
+                  {{- else }}
+                  name: {{ (index .Values.externalSecrets.secrets 0).name }}
+                  {{- end }}
+                  key: {{ .Values.librechat.apiKeySecretKey }}
+            {{- end }}
           envFrom:
             - secretRef:
                 name: {{ $chatName }}-secrets
-            {{- if and (not .Values.librechat.apiKey) .Values.librechat.apiKeySecretName }}
-            - secretRef:
-                name: {{ .Values.librechat.apiKeySecretName }}
-            {{- else if and (not .Values.librechat.apiKey) .Values.externalSecrets.enabled }}
-            {{- range .Values.externalSecrets.secrets }}
-            - secretRef:
-                name: {{ .name }}
-            {{- end }}
-            {{- end }}
           resources:
             {{- toYaml .Values.librechat.resources | nindent 12 }}
           securityContext:
@@ -204,6 +210,14 @@ spec:
               mountPath: /app/librechat.yaml
               subPath: librechat.yaml
               readOnly: true
+            {{- /* LibreChat (Node) writes at runtime; rootfs is read-only, so
+                   give it emptyDir scratch dirs instead of relaxing the rootfs. */}}
+            - name: logs
+              mountPath: /app/logs
+            - name: uploads
+              mountPath: /app/uploads
+            - name: images
+              mountPath: /app/client/public/images
           readinessProbe:
             httpGet:
               path: /health
@@ -220,6 +234,12 @@ spec:
         - name: config
           configMap:
             name: {{ $chatName }}-config
+        - name: logs
+          emptyDir: {}
+        - name: uploads
+          emptyDir: {}
+        - name: images
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -237,4 +257,51 @@ spec:
   selector:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/component: librechat
+{{- /* Optional external route for the LibreChat UI — Istio GatewayAPI HTTPRoute.
+       parentRef defaults to the release's routing.gatewayapi.parentRef unless
+       librechat.route.parentRef overrides it. Rendered only when
+       route.enabled + route.host are set AND routing.type == gatewayapi. */}}
+{{- $lr := .Values.librechat.route }}
+{{- if and $lr.enabled $lr.host (eq .Values.routing.type "gatewayapi") }}
+{{- $pref := $lr.parentRef | default dict }}
+{{- $gw := .Values.routing.gatewayapi.parentRef }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $chatName }}
+  labels:
+    {{- include "aigent-squad.labels" . | nindent 4 }}
+    app.kubernetes.io/component: librechat
+    {{- with $lr.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $lr.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ $pref.name | default $gw.name }}
+      {{- with ($pref.namespace | default $gw.namespace) }}
+      namespace: {{ . }}
+      {{- end }}
+      {{- with ($pref.sectionName | default $gw.sectionName) }}
+      sectionName: {{ . }}
+      {{- end }}
+  hostnames:
+    - {{ $lr.host | quote }}
+  rules:
+    - matches:
+        - path:
+            type: {{ $lr.pathType | default "PathPrefix" }}
+            value: {{ $lr.path | default "/" }}
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ $chatName }}
+          port: {{ .Values.librechat.port }}
+{{- end }}
 {{- end }}

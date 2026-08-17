@@ -23,10 +23,10 @@ topology: inProcess
 global:
   image:
     # Image = <registry>/<repository>:<tag>.
-    #   repository: karlipegomes/aigent-squad (published by CI to Docker Hub).
+    #   repository: ghcr.io/staffops/aigent-squad (published by CI to GHCR).
     #   tag:        inherits Chart.appVersion (the pipeline bumps it) — don't
     #               hardcode a tag here.
-    #   registry:   empty = Docker Hub as-is (the pipeline's target). Local dev
+    #   registry:   empty (GHCR prefix is in the repository field). Local dev
     #               overrides this to a Harbor project in the env overlay
     #               (e.g. harbor.bigdatacorp.com.br/labs) — Harbor is local-only.
     registry: ""
@@ -228,7 +228,7 @@ services:
   gateway:
     enabled: true
     image:
-      repository: karlipegomes/aigent-squad
+      repository: ghcr.io/staffops/aigent-squad
     command: ["python", "-m", "src.gateway.main"]
     port: 8000
     mountAgents: false        # gateway holds no agent config
@@ -276,7 +276,7 @@ services:
     # tag omitted on purpose → inherits Chart.appVersion (reproducible, pinned).
     # Override per-release only by bumping appVersion in Chart.yaml.
     image:
-      repository: karlipegomes/aigent-squad
+      repository: ghcr.io/staffops/aigent-squad
     command: ["python", "-m", "src.supervisor.server"]
     port: 8001
     # In inProcess mode the supervisor runs every agent → mount the configs.

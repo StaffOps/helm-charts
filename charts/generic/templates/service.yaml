@@ -1,0 +1,104 @@
+{{- if include "generic.serviceEnabled" . }}
+{{- $svc := .Values.service }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "generic.fullname" . }}
+  namespace: {{ include "generic.namespace" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+    {{- with $svc.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with (include "generic.annotations" (list . $svc.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  type: {{ $svc.type }}
+  {{- with $svc.clusterIP }}
+  clusterIP: {{ . }}
+  {{- end }}
+  {{- if eq $svc.type "LoadBalancer" }}
+  {{- with $svc.loadBalancerClass }}
+  loadBalancerClass: {{ . }}
+  {{- end }}
+  {{- with $svc.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  {{- with $svc.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  {{- if and $svc.externalTrafficPolicy (has $svc.type (list "NodePort" "LoadBalancer")) }}
+  externalTrafficPolicy: {{ $svc.externalTrafficPolicy }}
+  {{- end }}
+  {{- with $svc.internalTrafficPolicy }}
+  internalTrafficPolicy: {{ . }}
+  {{- end }}
+  {{- with $svc.trafficDistribution }}
+  trafficDistribution: {{ . }}
+  {{- end }}
+  {{- with $svc.sessionAffinity }}
+  sessionAffinity: {{ . }}
+  {{- end }}
+  {{- with $svc.sessionAffinityConfig }}
+  sessionAffinityConfig:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $svc.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ . }}
+  {{- end }}
+  {{- with $svc.ipFamilies }}
+  ipFamilies:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $svc.externalIPs }}
+  externalIPs:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  ports:
+    {{- range .Values.ports }}
+    {{- if include "generic.isExposed" . }}
+    - name: {{ .name }}
+      port: {{ default .containerPort .servicePort }}
+      targetPort: {{ .name }}
+      protocol: {{ .protocol | default "TCP" }}
+      {{- with .appProtocol }}
+      appProtocol: {{ . }}
+      {{- end }}
+      {{- if and .nodePort (has $svc.type (list "NodePort" "LoadBalancer")) }}
+      nodePort: {{ .nodePort }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
+  selector:
+    {{- include "generic.selectorLabels" . | nindent 4 }}
+{{- end }}
+{{- if and (include "generic.hasExposedPorts" .) (or (eq .Values.workload.kind "StatefulSet") .Values.headlessService.enabled) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "generic.headlessServiceName" . }}
+  namespace: {{ include "generic.namespace" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+  {{- with (include "generic.annotations" (list . .Values.headlessService.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    {{- range .Values.ports }}
+    {{- if include "generic.isExposed" . }}
+    - name: {{ .name }}
+      port: {{ default .containerPort .servicePort }}
+      targetPort: {{ .name }}
+      protocol: {{ .protocol | default "TCP" }}
+      {{- with .appProtocol }}
+      appProtocol: {{ . }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
+  selector:
+    {{- include "generic.selectorLabels" . | nindent 4 }}
+{{- end }}

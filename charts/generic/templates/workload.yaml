@@ -1,0 +1,88 @@
+{{- include "generic.validate" . -}}
+{{- $kind := .Values.workload.kind -}}
+apiVersion: apps/v1
+kind: {{ $kind }}
+metadata:
+  name: {{ include "generic.fullname" . }}
+  namespace: {{ include "generic.namespace" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+    {{- with .Values.workload.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with (include "generic.annotations" (list . .Values.workload.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  {{- if and (ne $kind "DaemonSet") (not (include "generic.horizontalScaling" .)) }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.workload.revisionHistoryLimit }}
+  {{- with .Values.workload.minReadySeconds }}
+  minReadySeconds: {{ . }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "generic.selectorLabels" . | nindent 6 }}
+  {{- if eq $kind "Deployment" }}
+  {{- $s := deepCopy (.Values.workload.strategy | default dict) }}
+  {{- if eq (toString $s.type) "Recreate" }}{{ $_ := unset $s "rollingUpdate" }}{{ end }}
+  {{- with $s }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  progressDeadlineSeconds: {{ .Values.workload.progressDeadlineSeconds }}
+  {{- else }}
+  {{- $s := deepCopy (.Values.workload.updateStrategy | default dict) }}
+  {{- if eq (toString $s.type) "OnDelete" }}{{ $_ := unset $s "rollingUpdate" }}{{ end }}
+  {{- with $s }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  {{- if eq $kind "StatefulSet" }}
+  serviceName: {{ include "generic.headlessServiceName" . }}
+  podManagementPolicy: {{ .Values.workload.podManagementPolicy }}
+  {{- with .Values.workload.persistentVolumeClaimRetentionPolicy }}
+  persistentVolumeClaimRetentionPolicy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  template:
+    {{- include "generic.podTemplate" . | nindent 4 }}
+  {{- if eq $kind "StatefulSet" }}
+  {{- $p := .Values.persistence }}
+  {{- if or (and $p.enabled (not $p.existingClaim)) .Values.volumeClaimTemplates }}
+  volumeClaimTemplates:
+    {{- if and $p.enabled (not $p.existingClaim) }}
+    - metadata:
+        name: data
+        # Selector labels only: volumeClaimTemplates is immutable, so labels
+        # that change per release (chart/app version) would break upgrades.
+        labels:
+          {{- include "generic.selectorLabels" . | nindent 10 }}
+          {{- with $p.labels }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- with $p.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          {{- toYaml $p.accessModes | nindent 10 }}
+        {{- with (include "generic.storageClass" $p | trim) }}{{ . | nindent 8 }}{{ end }}
+        {{- with $p.volumeMode }}
+        volumeMode: {{ . }}
+        {{- end }}
+        {{- with $p.selector }}
+        selector:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $p.size | quote }}
+    {{- end }}
+    {{- with .Values.volumeClaimTemplates }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  {{- end }}

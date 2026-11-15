@@ -1,0 +1,54 @@
+{{- $np := .Values.networkPolicy }}
+{{- if $np.enabled }}
+{{- $root := . }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "generic.fullname" . }}
+  namespace: {{ include "generic.namespace" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "generic.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    {{- toYaml $np.policyTypes | nindent 4 }}
+  {{- if has "Ingress" $np.policyTypes }}
+  {{- $rules := list }}
+  {{- range $np.ingress }}
+  {{- $r := deepCopy . }}
+  {{- if and $np.istioAmbient $r.ports }}
+  {{- $_ := set $r "ports" (append $r.ports (dict "port" 15008 "protocol" "TCP")) }}
+  {{- end }}
+  {{- $rules = append $rules $r }}
+  {{- end }}
+  {{- if $np.istioAmbient }}
+  {{- $rules = append $rules (dict "from" (list (dict "ipBlock" (dict "cidr" "169.254.7.127/32")))) }}
+  {{- end }}
+  ingress:
+    {{- with $rules }}
+    {{- tpl (toYaml .) $root | nindent 4 }}
+    {{- else }} []
+    {{- end }}
+  {{- end }}
+  {{- if has "Egress" $np.policyTypes }}
+  {{- if or $np.egress $np.allowDNS }}
+  egress:
+    {{- if $np.allowDNS }}
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    {{- end }}
+    {{- with $np.egress }}
+    {{- tpl (toYaml .) $root | nindent 4 }}
+    {{- end }}
+  {{- else }}
+  egress: []
+  {{- end }}
+  {{- end }}
+{{- end }}

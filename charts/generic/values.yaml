@@ -1,0 +1,518 @@
+# =============================================================================
+# generic — values
+#
+# Naming: every resource is named after the release (`helm install orders-api`
+# → Deployment/Service/... "orders-api"). Override with fullnameOverride.
+#
+# Most string values that reference names (hosts, env values, configMap data
+# with tpl: true, extraObjects) go through `tpl`, so `{{ .Release.Name }}` and
+# `{{ include "generic.fullname" . }}` work inside them.
+# =============================================================================
+
+global:
+  # Registry prefix applied to every image (main, tests). Useful on-premises /
+  # air-gapped with a registry mirror (Harbor, Nexus, Artifactory, ECR pull-through).
+  imageRegistry: ""
+  # Pull secrets added to every pod. Strings or {name: ...} objects.
+  imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+namespaceOverride: ""
+
+# Optional recommended labels.
+component: ""   # app.kubernetes.io/component (api, worker, frontend, ...)
+partOf: ""      # app.kubernetes.io/part-of
+
+# Added to every resource rendered by the chart.
+commonLabels: {}
+commonAnnotations: {}
+
+# -----------------------------------------------------------------------------
+# Workload
+# -----------------------------------------------------------------------------
+workload:
+  # Deployment | StatefulSet | DaemonSet
+  kind: Deployment
+  labels: {}
+  annotations: {}
+  revisionHistoryLimit: 10
+  minReadySeconds: 0
+
+  # Deployment only. type: RollingUpdate | Recreate
+  # (rollingUpdate is dropped automatically when type is Recreate)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+  progressDeadlineSeconds: 600
+
+  # StatefulSet / DaemonSet. type: RollingUpdate | OnDelete
+  updateStrategy:
+    type: RollingUpdate
+
+  # StatefulSet only
+  podManagementPolicy: OrderedReady        # OrderedReady | Parallel
+  serviceName: ""                          # default: <fullname>-headless (created automatically)
+  persistentVolumeClaimRetentionPolicy: {}  # {whenDeleted: Retain|Delete, whenScaled: Retain|Delete}
+
+# Ignored for DaemonSet and when autoscaling/keda is enabled.
+replicaCount: 1
+
+# -----------------------------------------------------------------------------
+# Container image
+# -----------------------------------------------------------------------------
+image:
+  registry: docker.io
+  repository: nginxinc/nginx-unprivileged
+  tag: ""          # default: .Chart.AppVersion. Avoid mutable tags (latest) in production.
+  digest: ""       # sha256:... — when set, takes precedence over tag
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# -----------------------------------------------------------------------------
+# Main container
+# -----------------------------------------------------------------------------
+containerName: ""  # default: chart name / nameOverride
+command: []
+args: []
+workingDir: ""
+
+# Container ports. Every port with expose != false is published on the Service.
+ports:
+  - name: http
+    containerPort: 8080
+    protocol: TCP
+    # servicePort: 80      # default: containerPort
+    # appProtocol: http    # hint for meshes / gateways (http, http2, grpc, kubernetes.io/h2c, ...)
+    # nodePort: 30080      # Service type NodePort / LoadBalancer
+    # hostPort: 8080       # usually only for DaemonSets
+    # expose: false        # keep the port off the Service
+
+# Environment variables as a map. Value can be:
+#   - a scalar  → value (rendered through tpl)
+#   - a map     → used as-is (valueFrom: ...)
+env: {}
+#  LOG_LEVEL: info
+#  RELEASE: "{{ .Release.Name }}"
+#  POD_IP:
+#    valueFrom:
+#      fieldRef:
+#        fieldPath: status.podIP
+#  DB_PASSWORD:
+#    valueFrom:
+#      secretKeyRef:
+#        name: my-existing-secret
+#        key: password
+
+# Raw env list, appended after `env` (for ordering-dependent $(VAR) expansions).
+extraEnv: []
+
+# Raw envFrom entries (existing ConfigMaps/Secrets not managed by this chart).
+envFrom: []
+#  - secretRef:
+#      name: my-existing-secret
+
+# Probes — raw Kubernetes probe objects. Set to {} to disable.
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+startupProbe: {}
+#  httpGet:
+#    path: /
+#    port: http
+#  periodSeconds: 5
+#  failureThreshold: 30
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+# In-place pod resize (Kubernetes 1.33+ beta).
+resizePolicy: []
+#  - resourceName: cpu
+#    restartPolicy: NotRequired
+
+lifecycle: {}
+#  preStop:
+#    sleep:
+#      seconds: 5
+
+# Restricted Pod Security Standard by default.
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  capabilities:
+    drop: ["ALL"]
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 101
+  runAsGroup: 101
+  fsGroup: 101
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+# Writable emptyDir at /tmp — needed by most apps with readOnlyRootFilesystem.
+tmpVolume:
+  enabled: true
+  mountPath: /tmp
+  medium: ""       # "" (disk) | Memory
+  sizeLimit: 256Mi
+
+extraVolumes: []
+extraVolumeMounts: []
+
+# Extra containers (raw specs, rendered through tpl).
+initContainers: []
+sidecars: []
+
+# -----------------------------------------------------------------------------
+# Pod
+# -----------------------------------------------------------------------------
+podLabels: {}
+podAnnotations: {}
+# Adds checksum/config annotations so pods roll when chart-managed
+# ConfigMaps/Secrets change.
+rollOnConfigChange: true
+
+priorityClassName: ""
+runtimeClassName: ""
+schedulerName: ""
+terminationGracePeriodSeconds: 30
+enableServiceLinks: false
+shareProcessNamespace: false
+hostNetwork: false      # dnsPolicy becomes ClusterFirstWithHostNet automatically
+hostPID: false
+hostIPC: false
+dnsPolicy: ""
+dnsConfig: {}
+hostAliases: []
+readinessGates: []
+
+nodeSelector: {}
+tolerations: []
+# When affinity is empty, podAntiAffinityPreset generates pod anti-affinity
+# by hostname: "" (off) | soft | hard
+podAntiAffinityPreset: soft
+affinity: {}
+# labelSelector is filled with the chart selector labels when omitted.
+topologySpreadConstraints: []
+#  - maxSkew: 1
+#    topologyKey: topology.kubernetes.io/zone
+#    whenUnsatisfiable: ScheduleAnyway
+
+# -----------------------------------------------------------------------------
+# ServiceAccount / RBAC
+# -----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  name: ""          # default: fullname (or "default" when create=false)
+  # Cloud identity examples:
+  #   EKS IRSA:      eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/app
+  #   GKE WI:        iam.gke.io/gcp-service-account: app@project.iam.gserviceaccount.com
+  #   AKS WI:        azure.workload.identity/client-id: <client-id>   (+ podLabels azure.workload.identity/use: "true")
+  annotations: {}
+  labels: {}
+  # Mount the API token in the pod. Forced to true when rbac.create is true.
+  automount: false
+
+rbac:
+  create: false
+  rules: []          # namespaced Role
+  #  - apiGroups: [""]
+  #    resources: ["configmaps"]
+  #    verbs: ["get", "list", "watch"]
+  clusterRules: []   # ClusterRole
+
+# -----------------------------------------------------------------------------
+# ConfigMaps / Secrets  (map key → resource "<fullname>-<key>")
+# -----------------------------------------------------------------------------
+configMaps: {}
+#  env:
+#    envFrom: true            # inject all keys as env vars
+#    data:
+#      LOG_LEVEL: info
+#  files:
+#    tpl: true                # render data values through tpl
+#    mountPath: /etc/app      # mount as a directory
+#    # subPath: config.yaml   # or mount a single key as a file (no hot reload)
+#    data:
+#      config.yaml: |
+#        name: {{ .Release.Name }}
+#    binaryData: {}
+
+# Prefer externalSecrets (or an existing Secret via envFrom) for real credentials —
+# stringData here ends up in Git/Helm release history.
+secrets: {}
+#  app:
+#    type: Opaque
+#    envFrom: true
+#    stringData:
+#      API_TOKEN: change-me
+#  tls:
+#    type: kubernetes.io/tls
+#    mountPath: /etc/tls
+#    data:                    # already base64
+#      tls.crt: ...
+#      tls.key: ...
+
+# External Secrets Operator (works with AWS SM, GCP SM, Azure KV, Vault, ...).
+externalSecrets: {}
+#  app:
+#    envFrom: true
+#    # mountPath: /etc/secrets
+#    refreshInterval: 1h
+#    secretStoreRef:
+#      kind: ClusterSecretStore
+#      name: aws-secrets-manager
+#    target: {}               # merged into spec.target (template, creationPolicy, ...)
+#    data:
+#      - secretKey: DATABASE_URL
+#        remoteRef:
+#          key: prod/orders-api
+#          property: database_url
+#    dataFrom: []
+externalSecretsApiVersion: external-secrets.io/v1   # ESO < 0.17: external-secrets.io/v1beta1
+
+# -----------------------------------------------------------------------------
+# Persistence
+#   Deployment  → single PVC "<fullname>" (RWO + replicas>1 needs RWX)
+#   StatefulSet → volumeClaimTemplate "data" (one PVC per replica)
+#   DaemonSet   → only existingClaim (use extraVolumes/hostPath otherwise)
+# -----------------------------------------------------------------------------
+persistence:
+  enabled: false
+  existingClaim: ""
+  storageClass: ""     # "" = cluster default; "-" = no class (static PV)
+  accessModes: ["ReadWriteOnce"]
+  size: 1Gi
+  mountPath: /data
+  subPath: ""
+  annotations: {}
+  labels: {}
+  selector: {}
+  volumeMode: ""       # Filesystem | Block
+  keep: false          # Deployment PVC: helm.sh/resource-policy: keep
+
+# Additional StatefulSet volumeClaimTemplates (raw).
+volumeClaimTemplates: []
+
+# -----------------------------------------------------------------------------
+# Networking
+# -----------------------------------------------------------------------------
+service:
+  enabled: true
+  type: ClusterIP        # ClusterIP | NodePort | LoadBalancer
+  # Cloud / on-prem LB examples:
+  #   AWS NLB:    service.beta.kubernetes.io/aws-load-balancer-type: external
+  #               service.beta.kubernetes.io/aws-load-balancer-scheme: internal
+  #   GKE ILB:    networking.gke.io/load-balancer-type: Internal
+  #   AKS ILB:    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  #   MetalLB:    metallb.universe.tf/address-pool: default
+  annotations: {}
+  labels: {}
+  clusterIP: ""
+  loadBalancerClass: ""
+  loadBalancerIP: ""
+  loadBalancerSourceRanges: []
+  externalTrafficPolicy: ""   # Cluster | Local (NodePort/LoadBalancer)
+  internalTrafficPolicy: ""
+  trafficDistribution: ""     # PreferClose (k8s 1.31+)
+  sessionAffinity: ""
+  sessionAffinityConfig: {}
+  ipFamilyPolicy: ""
+  ipFamilies: []
+  externalIPs: []
+
+# Headless Service — always created for StatefulSets; optional otherwise.
+headlessService:
+  enabled: false
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""          # nginx, traefik, alb, gce, azure-application-gateway, ...
+  annotations: {}
+  #  cert-manager.io/cluster-issuer: letsencrypt
+  labels: {}
+  hosts:
+    - host: app.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          # port: 80          # service port (number or name). default: first exposed port
+  tls: []
+  #  - secretName: app-tls
+  #    hosts: [app.example.com]
+
+# Gateway API (gateway.networking.k8s.io/v1). Each rule without backendRefs
+# gets the chart Service on the first exposed port. backendRefs: [] → none.
+httpRoute:
+  enabled: false
+  annotations: {}
+  labels: {}
+  parentRefs:
+    - name: gateway
+      namespace: gateway-system
+      # sectionName: https
+  hostnames: []
+  #  - app.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      # filters: []
+      # timeouts:
+      #   request: 30s
+  # Extra HTTPRoute that 301-redirects HTTP → HTTPS (attach to the http listener).
+  httpsRedirect:
+    enabled: false
+    statusCode: 301
+    parentRefs: []     # default: httpRoute.parentRefs with sectionName: http
+    #  - name: gateway
+    #    namespace: gateway-system
+    #    sectionName: http
+
+grpcRoute:
+  enabled: false
+  annotations: {}
+  labels: {}
+  parentRefs: []
+  hostnames: []
+  rules:
+    - matches: []
+      # - method:
+      #     service: my.package.Service
+
+networkPolicy:
+  enabled: false
+  policyTypes: ["Ingress"]
+  # Raw NetworkPolicy rules. Empty list = deny all for that direction.
+  ingress: []
+  #  - from:
+  #      - namespaceSelector:
+  #          matchLabels:
+  #            kubernetes.io/metadata.name: ingress-nginx
+  #    ports:
+  #      - port: http
+  egress: []
+  # When Egress is in policyTypes, also allow DNS (53/UDP+TCP) to any namespace.
+  allowDNS: true
+  # Istio ambient: mesh traffic arrives over HBONE on 15008 and kubelet probes are
+  # SNATed to 169.254.7.127. When true, 15008 is added to every ingress rule that
+  # lists ports (keeping its `from` peers) and the probe address is allowed.
+  istioAmbient: false
+
+# -----------------------------------------------------------------------------
+# Scaling / availability
+# -----------------------------------------------------------------------------
+autoscaling:              # HPA (Deployment/StatefulSet)
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: null
+  metrics: []             # extra raw autoscaling/v2 metrics
+  behavior: {}
+
+keda:                     # KEDA ScaledObject (mutually exclusive with autoscaling)
+  enabled: false
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  pollingInterval: null    # KEDA default 30s
+  cooldownPeriod: null     # KEDA default 300s; only used with minReplicaCount 0 / idleReplicaCount
+  idleReplicaCount: null
+  fallback: {}
+  advanced: {}
+  annotations: {}
+  triggers: []
+  #  - type: cpu
+  #    metricType: Utilization
+  #    metadata:
+  #      value: "70"
+  # name → TriggerAuthentication spec
+  triggerAuthentications: {}
+
+vpa:                      # VerticalPodAutoscaler (requires VPA CRDs)
+  enabled: false
+  updateMode: "Off"       # Off | Initial | Recreate | InPlaceOrRecreate
+  controlledResources: ["cpu", "memory"]
+  minAllowed: {}
+  maxAllowed: {}
+
+pdb:                      # Deployment/StatefulSet only
+  enabled: true
+  # minAvailable wins when set; otherwise maxUnavailable is used.
+  minAvailable: null
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: ""   # IfHealthyBudget | AlwaysAllow
+
+# -----------------------------------------------------------------------------
+# Observability (Prometheus Operator CRDs — also honored by VictoriaMetrics operator)
+# -----------------------------------------------------------------------------
+serviceMonitor:
+  enabled: false
+  port: ""                # Service port name. default: first exposed port
+  path: /metrics
+  scheme: ""
+  interval: 30s
+  scrapeTimeout: ""
+  honorLabels: false
+  labels: {}              # e.g. release: kube-prometheus-stack
+  annotations: {}
+  relabelings: []
+  metricRelabelings: []
+  tlsConfig: {}
+  namespaceSelector: {}
+
+# groups are rendered verbatim (no tpl), so {{ $labels }} / {{ $value }} work.
+prometheusRule:
+  enabled: false
+  labels: {}
+  groups: []
+  #  - name: app
+  #    rules:
+  #      - alert: AppDown
+  #        expr: up{job="orders-api"} == 0
+  #        for: 5m
+
+# -----------------------------------------------------------------------------
+# Helm test (helm test <release>) — wget against the Service.
+# -----------------------------------------------------------------------------
+tests:
+  enabled: true
+  path: /
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+
+# Arbitrary extra manifests (maps or strings), rendered through tpl.
+extraObjects: []
+#  - apiVersion: v1
+#    kind: ConfigMap
+#    metadata:
+#      name: "{{ include \"generic.fullname\" . }}-extra"
+#    data:
+#      foo: bar

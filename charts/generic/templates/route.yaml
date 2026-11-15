@@ -1,0 +1,70 @@
+{{- $root := . }}
+{{- $defaultBackend := list (dict "name" (include "generic.fullname" .) "port" (include "generic.defaultServicePort" . | int)) }}
+{{- range $kind, $r := dict "HTTPRoute" .Values.httpRoute "GRPCRoute" .Values.grpcRoute }}
+{{- if $r.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: {{ $kind }}
+metadata:
+  name: {{ include "generic.fullname" $root }}
+  namespace: {{ include "generic.namespace" $root }}
+  labels:
+    {{- include "generic.labels" $root | nindent 4 }}
+    {{- with $r.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with (include "generic.annotations" (list $root $r.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  parentRefs:
+    {{- required (printf "%s parentRefs is required" $kind) $r.parentRefs | toYaml | nindent 4 }}
+  {{- with $r.hostnames }}
+  hostnames:
+    {{- range . }}
+    - {{ tpl . $root | quote }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range ($r.rules | default (list dict)) }}
+    {{- $rule := omit . "backendRefs" }}
+    {{- if not (hasKey . "backendRefs") }}
+    {{- $_ := set $rule "backendRefs" $defaultBackend }}
+    {{- else if .backendRefs }}
+    {{- $_ := set $rule "backendRefs" .backendRefs }}
+    {{- end }}
+    - {{- tpl (toYaml $rule) $root | nindent 6 }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- $redir := .Values.httpRoute.httpsRedirect }}
+{{- if and .Values.httpRoute.enabled $redir.enabled }}
+{{- $parents := $redir.parentRefs }}
+{{- if not $parents }}
+{{- range .Values.httpRoute.parentRefs }}
+{{- $parents = append $parents (merge (dict "sectionName" "http") (omit . "sectionName" "port")) }}
+{{- end }}
+{{- end }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "generic.childName" (list . "https-redirect") }}
+  namespace: {{ include "generic.namespace" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+  {{- with (include "generic.annotations" (list . .Values.httpRoute.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  parentRefs:
+    {{- toYaml $parents | nindent 4 }}
+  {{- with .Values.httpRoute.hostnames }}
+  hostnames:
+    {{- range . }}
+    - {{ tpl . $root | quote }}
+    {{- end }}
+  {{- end }}
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: {{ $redir.statusCode | default 301 }}
+{{- end }}

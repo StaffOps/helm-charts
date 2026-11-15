@@ -1,0 +1,45 @@
+{{- if .Values.ingress.enabled }}
+{{- $root := . }}
+{{- $defaultPort := include "generic.defaultServicePort" . }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "generic.fullname" . }}
+  namespace: {{ include "generic.namespace" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+    {{- with .Values.ingress.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with (include "generic.annotations" (list . .Values.ingress.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- tpl (toYaml .) $root | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - {{- with .host }}
+      host: {{ tpl . $root | quote }}
+      {{- end }}
+      http:
+        paths:
+          {{- range .paths }}
+          {{- $port := .port | default $defaultPort }}
+          - path: {{ .path | default "/" }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ .serviceName | default (include "generic.fullname" $root) }}
+                port:
+                  {{- if regexMatch "^[0-9]+$" (toString $port) }}
+                  number: {{ $port }}
+                  {{- else }}
+                  name: {{ $port }}
+                  {{- end }}
+          {{- end }}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,27 @@
+{{- $root := . }}
+{{- range $k, $v := .Values.configMaps }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "generic.childName" (list $root $k) }}
+  namespace: {{ include "generic.namespace" $root }}
+  labels:
+    {{- include "generic.labels" $root | nindent 4 }}
+    {{- with $v.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with (include "generic.annotations" (list $root $v.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+{{- with $v.data }}
+data:
+  {{- range $key, $val := . }}
+  {{- $rendered := toString $val }}
+  {{- if $v.tpl }}{{ $rendered = tpl $rendered $root }}{{ end }}
+  {{- dict $key $rendered | toYaml | nindent 2 }}
+  {{- end }}
+{{- end }}
+{{- with $v.binaryData }}
+binaryData:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}

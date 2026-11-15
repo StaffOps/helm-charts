@@ -40,6 +40,7 @@ nav:
   - Charts:
       - Aigent Squad: charts/aigent-squad.md
       - Anomaly Detection: charts/anomaly-detection.md
+      - Generic: charts/generic.md
   - Contributing: contributing.md
 
 plugins:

@@ -1,0 +1,50 @@
+{{- $k := .Values.keda }}
+{{- $root := . }}
+{{- if and $k.enabled (ne .Values.workload.kind "DaemonSet") }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "generic.fullname" . }}
+  namespace: {{ include "generic.namespace" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+  {{- with (include "generic.annotations" (list . $k.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: {{ .Values.workload.kind }}
+    name: {{ include "generic.fullname" . }}
+  minReplicaCount: {{ $k.minReplicaCount }}
+  maxReplicaCount: {{ $k.maxReplicaCount }}
+  {{- with $k.pollingInterval }}
+  pollingInterval: {{ . }}
+  {{- end }}
+  {{- with $k.cooldownPeriod }}
+  cooldownPeriod: {{ . }}
+  {{- end }}
+  {{- if ne (toString $k.idleReplicaCount) "<nil>" }}
+  idleReplicaCount: {{ $k.idleReplicaCount }}
+  {{- end }}
+  {{- with $k.fallback }}
+  fallback:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $k.advanced }}
+  advanced:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  triggers:
+    {{- tpl (required "keda.triggers must have at least one trigger" $k.triggers | toYaml) $root | nindent 4 }}
+{{- end }}
+{{- range $name, $spec := $k.triggerAuthentications }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ tpl $name $root }}
+  namespace: {{ include "generic.namespace" $root }}
+  labels:
+    {{- include "generic.labels" $root | nindent 4 }}
+spec:
+  {{- tpl (toYaml $spec) $root | nindent 2 }}
+{{- end }}

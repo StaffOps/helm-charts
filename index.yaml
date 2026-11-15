@@ -510,4 +510,41 @@ entries:
     urls:
     - https://github.com/StaffOps/helm-charts/releases/download/anomaly-detection-0.1.0/anomaly-detection-0.1.0.tgz
     version: 0.1.0
-generated: "2026-07-19T00:21:36.74391829Z"
+  generic:
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: added
+          description: Initial release — Deployment/StatefulSet/DaemonSet, Service, Ingress, HTTPRoute/GRPCRoute, ConfigMaps, Secrets, ExternalSecrets, PVC, HPA, KEDA, VPA, PDB, NetworkPolicy, RBAC, ServiceMonitor, PrometheusRule, extraObjects
+      artifacthub.io/license: Apache-2.0
+    apiVersion: v2
+    appVersion: 1.27-alpine
+    created: "2026-11-15T20:11:36.0731026Z"
+    description: 'Generic application chart. Deploys a single workload as a Deployment,
+      StatefulSet or DaemonSet, plus everything it usually needs around it: Service,
+      Ingress, Gateway API HTTPRoute/GRPCRoute, ConfigMaps, Secrets, ExternalSecrets,
+      PVC, HPA/KEDA/VPA, PDB, NetworkPolicy, RBAC, ServiceMonitor/PrometheusRule and
+      an extraObjects escape hatch. Cloud-agnostic: works on EKS, GKE, AKS and on-premises
+      clusters. '
+    digest: 02b0b709fec8bce1fbe4b81ea7cc887ac8f0add7678cd2df908129aa850fe3e2
+    home: https://staffops.github.io/helm-charts/
+    icon: https://avatars.githubusercontent.com/u/66139348?s=200&v=4
+    keywords:
+    - generic
+    - application
+    - deployment
+    - statefulset
+    - daemonset
+    - gateway-api
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - name: StaffOps
+      url: https://github.com/StaffOps
+    name: generic
+    sources:
+    - https://github.com/StaffOps/helm-charts
+    type: application
+    urls:
+    - https://github.com/StaffOps/helm-charts/releases/download/generic-0.1.0/generic-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-11-15T20:11:36.073132155Z"

@@ -1,0 +1,12 @@
+# ct install: StatefulSet with volumeClaimTemplate + headless Service.
+workload:
+  kind: StatefulSet
+  podManagementPolicy: Parallel
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+    whenScaled: Retain
+replicaCount: 2
+persistence:
+  enabled: true
+  size: 100Mi
+  mountPath: /data

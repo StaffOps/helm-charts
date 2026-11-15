@@ -1,0 +1,30 @@
+{{- $p := .Values.persistence }}
+{{- if and $p.enabled (not $p.existingClaim) (eq .Values.workload.kind "Deployment") }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "generic.fullname" . }}
+  namespace: {{ include "generic.namespace" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+    {{- with $p.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- $ann := deepCopy ($p.annotations | default dict) }}
+  {{- if $p.keep }}{{ $_ := set $ann "helm.sh/resource-policy" "keep" }}{{ end }}
+  {{- with (include "generic.annotations" (list . $ann) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  accessModes:
+    {{- toYaml $p.accessModes | nindent 4 }}
+  {{- with (include "generic.storageClass" $p | trim) }}{{ . | nindent 2 }}{{ end }}
+  {{- with $p.volumeMode }}
+  volumeMode: {{ . }}
+  {{- end }}
+  {{- with $p.selector }}
+  selector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $p.size | quote }}
+{{- end }}

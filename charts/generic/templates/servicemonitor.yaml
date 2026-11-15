@@ -1,0 +1,49 @@
+{{- $sm := .Values.serviceMonitor }}
+{{- if $sm.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "generic.fullname" . }}
+  namespace: {{ include "generic.namespace" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+    {{- with $sm.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with (include "generic.annotations" (list . $sm.annotations) | trim) }}{{ . | nindent 2 }}{{ end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "generic.selectorLabels" . | nindent 6 }}
+  {{- with $sm.namespaceSelector }}
+  namespaceSelector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  endpoints:
+    - port: {{ $sm.port | default (include "generic.defaultPortName" .) }}
+      path: {{ $sm.path }}
+      {{- with $sm.scheme }}
+      scheme: {{ . }}
+      {{- end }}
+      {{- with $sm.interval }}
+      interval: {{ . }}
+      {{- end }}
+      {{- with $sm.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+      {{- if $sm.honorLabels }}
+      honorLabels: true
+      {{- end }}
+      {{- with $sm.tlsConfig }}
+      tlsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $sm.relabelings }}
+      relabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $sm.metricRelabelings }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

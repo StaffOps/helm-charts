@@ -8,6 +8,7 @@ Helm charts for the [StaffOps](https://github.com/StaffOps) suite of open-source
 |-------|---------|-------------|-------------|
 | [aigent-squad](./charts/aigent-squad) | ![chart-version](https://img.shields.io/badge/chart-0.6.0-blue) | ![app-version](https://img.shields.io/badge/app-0.1.0-green) | Config-driven multi-agent platform for AWS/K8s operations (supervisor + specialist agents, Bedrock-direct) |
 | [anomaly-detection](./charts/anomaly-detection) | ![chart-version](https://img.shields.io/badge/chart-0.1.0-blue) | ![app-version](https://img.shields.io/badge/app-0.7.0-green) | Distributed anomaly detection for Kubernetes (Go controller + workers + Python ML) |
+| [generic](./charts/generic) | ![chart-version](https://img.shields.io/badge/chart-0.1.0-blue) | ![app-version](https://img.shields.io/badge/app-1.27--alpine-green) | Generic app chart — Deployment/StatefulSet/DaemonSet + Service, Ingress, HTTPRoute, ConfigMaps, Secrets, ESO, HPA/KEDA, PDB, NetworkPolicy, ServiceMonitor |
 
 ## Usage
 
@@ -43,6 +44,7 @@ helm install my-anomaly-detection staffops/anomaly-detection \
 For full configuration, see each chart's README:
 
 - [anomaly-detection README](./charts/anomaly-detection/README.md)
+- [generic README](./charts/generic/README.md)
 
 ## Repository Layout
 
@@ -50,7 +52,8 @@ For full configuration, see each chart's README:
 helm-charts/
 ├── charts/
 │   ├── aigent-squad/                  # Multi-agent platform (supervisor + agents)
-│   └── anomaly-detection/    # Anomaly detection stack
+│   ├── anomaly-detection/    # Anomaly detection stack
+│   └── generic/                       # Generic app chart (any workload)
 ├── .github/
 │   └── workflows/
 │       ├── lint-test.yaml             # Validates PRs (helm lint, ct lint, ct install)

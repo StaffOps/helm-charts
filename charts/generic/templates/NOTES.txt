@@ -1,0 +1,35 @@
+{{ .Values.workload.kind }} "{{ include "generic.fullname" . }}" deployed in namespace "{{ include "generic.namespace" . }}".
+Image: {{ include "generic.image" . }}
+
+  kubectl -n {{ include "generic.namespace" . }} get {{ .Values.workload.kind | lower }},pods -l app.kubernetes.io/instance={{ .Release.Name }}
+{{- if .Values.ingress.enabled }}
+
+Ingress:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ tpl .host $ }}
+{{- end }}
+{{- end }}
+{{- if .Values.httpRoute.enabled }}
+
+HTTPRoute hostnames:
+{{- range .Values.httpRoute.hostnames }}
+  {{ tpl . $ }}
+{{- else }}
+  (none — matches every hostname on the parent Gateway listener)
+{{- end }}
+{{- end }}
+{{- if include "generic.serviceEnabled" . }}
+
+Port-forward:
+  kubectl -n {{ include "generic.namespace" . }} port-forward svc/{{ include "generic.fullname" . }} {{ include "generic.defaultServicePort" . }}:{{ include "generic.defaultServicePort" . }}
+{{- end }}
+{{- if and .Values.persistence.enabled (eq .Values.workload.kind "Deployment") (has "ReadWriteOnce" .Values.persistence.accessModes) (or (gt (int .Values.replicaCount) 1) .Values.autoscaling.enabled .Values.keda.enabled) }}
+
+WARNING: Deployment with a ReadWriteOnce PVC and more than one replica — pods on
+other nodes will not start. Use a ReadWriteMany storage class or workload.kind=StatefulSet.
+{{- end }}
+{{- if .Values.secrets }}
+
+NOTE: secrets.* values are stored in the Helm release. For real credentials prefer
+externalSecrets or an existing Secret referenced via envFrom / env.valueFrom.
+{{- end }}

@@ -1,0 +1,15 @@
+# ct install: DaemonSet (no PDB/HPA), metrics-style port kept off the Service.
+workload:
+  kind: DaemonSet
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+ports:
+  - name: http
+    containerPort: 8080
+  - name: admin
+    containerPort: 8081
+    expose: false
+tolerations:
+  - operator: Exists

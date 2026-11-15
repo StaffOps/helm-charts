@@ -1,0 +1,44 @@
+{{- if and .Values.tests.enabled (include "generic.serviceEnabled" .) }}
+{{- $img := .Values.tests.image }}
+{{- $registry := .Values.global.imageRegistry | default $img.registry }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "generic.childName" (list . "test") }}
+  namespace: {{ include "generic.namespace" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  {{- with (include "generic.imagePullSecrets" . | trim) }}{{ . | nindent 2 }}{{ end }}
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: wget
+      image: {{ printf "%s%s:%s" (ternary (printf "%s/" $registry) "" (not (empty $registry))) $img.repository $img.tag | quote }}
+      command: ["wget"]
+      args:
+        - "-q"
+        - "-O-"
+        - "-T"
+        - "10"
+        - "http://{{ include "generic.fullname" . }}.{{ include "generic.namespace" . }}.svc:{{ include "generic.defaultServicePort" . }}{{ .Values.tests.path }}"
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          memory: 32Mi
+{{- end }}

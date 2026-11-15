@@ -1,0 +1,36 @@
+# ct install: Deployment + ConfigMaps + Secret + HPA + PDB + NetworkPolicy.
+replicaCount: 2
+env:
+  LOG_LEVEL: info
+  RELEASE: "{{ .Release.Name }}"
+  POD_IP:
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
+configMaps:
+  env:
+    envFrom: true
+    data:
+      FEATURE_X: "true"
+  files:
+    tpl: true
+    mountPath: /etc/app
+    data:
+      config.yaml: |
+        name: {{ .Release.Name }}
+        # literal braces stay untouched only when tpl is false
+secrets:
+  app:
+    envFrom: true
+    stringData:
+      API_TOKEN: ci-only
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+networkPolicy:
+  enabled: true
+  policyTypes: ["Ingress"]
+  ingress:
+    - ports:
+        - port: http

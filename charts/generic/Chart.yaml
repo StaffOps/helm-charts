@@ -1,0 +1,45 @@
+apiVersion: v2
+name: generic
+description: |
+  Generic application chart. Deploys a single workload as a Deployment,
+  StatefulSet or DaemonSet, plus everything it usually needs around it:
+  Service, Ingress, Gateway API HTTPRoute/GRPCRoute, ConfigMaps, Secrets,
+  ExternalSecrets, PVC, HPA/KEDA/VPA, PDB, NetworkPolicy, RBAC,
+  ServiceMonitor/PrometheusRule and an extraObjects escape hatch.
+  Cloud-agnostic: works on EKS, GKE, AKS and on-premises clusters.
+
+type: application
+
+# Chart version follows the chart's own SemVer. Bump on every chart change.
+version: 0.1.0
+
+# Default image tag (nginx-unprivileged) used when image.tag is empty.
+# Real releases always override image.repository / image.tag.
+appVersion: "1.27-alpine"
+
+kubeVersion: ">=1.25.0-0"
+
+home: https://staffops.github.io/helm-charts/
+sources:
+  - https://github.com/StaffOps/helm-charts
+
+icon: https://avatars.githubusercontent.com/u/66139348?s=200&v=4
+
+keywords:
+  - generic
+  - application
+  - deployment
+  - statefulset
+  - daemonset
+  - gateway-api
+
+maintainers:
+  - name: StaffOps
+    url: https://github.com/StaffOps
+
+annotations:
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release — Deployment/StatefulSet/DaemonSet, Service, Ingress, HTTPRoute/GRPCRoute, ConfigMaps, Secrets, ExternalSecrets, PVC, HPA, KEDA, VPA, PDB, NetworkPolicy, RBAC, ServiceMonitor, PrometheusRule, extraObjects

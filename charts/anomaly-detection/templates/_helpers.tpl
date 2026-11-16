@@ -141,7 +141,7 @@ fields are empty. Tag also falls back to .Chart.AppVersion.
 {{- $registry := default .Values.image.registry .Values.controller.image.registry -}}
 {{- $repo := .Values.controller.image.repository -}}
 {{- $tag := default (default .Chart.AppVersion .Values.image.tag) .Values.controller.image.tag -}}
-{{- printf "%s/%s:%s" $registry $repo $tag -}}
+{{- if $registry }}{{ printf "%s/%s:%s" $registry $repo $tag }}{{ else }}{{ printf "%s:%s" $repo $tag }}{{ end -}}
 {{- end }}
 
 {{- define "staffops-ad.controller.imagePullPolicy" -}}
@@ -152,7 +152,7 @@ fields are empty. Tag also falls back to .Chart.AppVersion.
 {{- $registry := default .Values.image.registry .Values.worker.image.registry -}}
 {{- $repo := .Values.worker.image.repository -}}
 {{- $tag := default (default .Chart.AppVersion .Values.image.tag) .Values.worker.image.tag -}}
-{{- printf "%s/%s:%s" $registry $repo $tag -}}
+{{- if $registry }}{{ printf "%s/%s:%s" $registry $repo $tag }}{{ else }}{{ printf "%s:%s" $repo $tag }}{{ end -}}
 {{- end }}
 
 {{- define "staffops-ad.worker.imagePullPolicy" -}}
@@ -163,7 +163,7 @@ fields are empty. Tag also falls back to .Chart.AppVersion.
 {{- $registry := default .Values.image.registry .Values.ml.image.registry -}}
 {{- $repo := .Values.ml.image.repository -}}
 {{- $tag := default (default .Chart.AppVersion .Values.image.tag) .Values.ml.image.tag -}}
-{{- printf "%s/%s:%s" $registry $repo $tag -}}
+{{- if $registry }}{{ printf "%s/%s:%s" $registry $repo $tag }}{{ else }}{{ printf "%s:%s" $repo $tag }}{{ end -}}
 {{- end }}
 
 {{- define "staffops-ad.ml.imagePullPolicy" -}}
@@ -174,7 +174,7 @@ fields are empty. Tag also falls back to .Chart.AppVersion.
 {{- $registry := .Values.redis.image.registry -}}
 {{- $repo := .Values.redis.image.repository -}}
 {{- $tag := .Values.redis.image.tag -}}
-{{- printf "%s/%s:%s" $registry $repo $tag -}}
+{{- if $registry }}{{ printf "%s/%s:%s" $registry $repo $tag }}{{ else }}{{ printf "%s:%s" $repo $tag }}{{ end -}}
 {{- end }}
 
 {{/*

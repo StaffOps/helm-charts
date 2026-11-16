@@ -260,7 +260,7 @@ redis:
   external:
     addr: ""           # e.g. "redis.example.com:6379"
     db: 0
-    existingSecret: "" # name of Secret holding `redis-password` key
+    existingSecret: ""  # name of Secret holding `redis-password` key
     secretKey: "redis-password"
 
 # =============================================================================

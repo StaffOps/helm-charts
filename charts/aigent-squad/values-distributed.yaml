@@ -26,7 +26,7 @@ services:
     expose: true
     serviceAccount: { create: true, annotations: {} }
     env:
-      SUPERVISOR_URL: "http://{{ .Release.Name }}-supervisor:8001"
+      SUPERVISOR_URL: "http://{{ include \"aigent-squad.serviceFullname\" (dict \"root\" . \"name\" \"supervisor\") }}:8001"
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { memory: 512Mi }
@@ -160,7 +160,7 @@ services:
     expose: true               # facade for Kiro CLI
     env:
       # mcp-server calls the gateway's public /query (spec 31)
-      SUPERVISOR_URL: "http://{{ .Release.Name }}-gateway:8000/query"
+      SUPERVISOR_URL: "http://{{ include \"aigent-squad.serviceFullname\" (dict \"root\" . \"name\" \"gateway\") }}:8000/query"
     serviceAccount: { create: true, annotations: {} }
     resources:
       requests: { cpu: 100m, memory: 256Mi }

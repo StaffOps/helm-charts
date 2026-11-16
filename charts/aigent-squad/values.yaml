@@ -238,7 +238,7 @@ services:
       name: ""
       annotations: {}
     env:
-      SUPERVISOR_URL: "http://{{ .Release.Name }}-supervisor:8001"
+      SUPERVISOR_URL: "http://{{ include \"aigent-squad.serviceFullname\" (dict \"root\" . \"name\" \"supervisor\") }}:8001"
     resources:
       requests:
         cpu: 100m
@@ -502,6 +502,25 @@ externalSecrets:
     #     # Gateway sends it; supervisor validates it on /internal/process.
     #     - secretKey: SUPERVISOR_INTERNAL_TOKEN
     #       remoteRef: { key: aigent-squad/supervisor-internal-token }
+
+# -----------------------------------------------------------------------------
+# Pre-existing Secrets (no External Secrets Operator needed). Each name is an
+# existing K8s Secret in the release namespace, injected whole via envFrom
+# (keys become env var names). Combines with `externalSecrets` when both set.
+# Typical keys: INTERNAL_API_TOKEN, SUPERVISOR_INTERNAL_TOKEN, REDIS_PASSWORD,
+# OPENAI_API_KEY (when global.env.LLM_PROVIDER=openai — app spec 28).
+# -----------------------------------------------------------------------------
+existingSecrets: []
+  # - aigent-squad-secrets
+
+# LLM provider (app spec 28) — non-secret settings go in `global.env`:
+#   LLM_PROVIDER: "openai"                       # default "bedrock"
+#   OPENAI_BASE_URL: "http://llama.llm.svc:8080/v1"
+#   LLM_MODEL_ID: "<model name the server exposes>"
+#   LLM_CLASSIFIER_MODEL_ID: ""                  # optional, falls back to LLM_MODEL_ID
+#   LLM_PRICE_INPUT_PER_1M / LLM_PRICE_OUTPUT_PER_1M  # optional, cost=0 otherwise
+# The key (OPENAI_API_KEY) belongs in a Secret: `existingSecrets` or `externalSecrets`.
+# NOTE: with LLM_PROVIDER != bedrock the Bedrock Guardrail (L1) is OFF by design.
 
 # Name overrides
 nameOverride: ""

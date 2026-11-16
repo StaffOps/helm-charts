@@ -50,7 +50,7 @@ helm install aigent-squad staffops/aigent-squad \
   --set redis.host=my-elasticache.cache.amazonaws.com
 ```
 
-The image `karlipegomes/aigent-squad` is built and published to Docker Hub by
+The image `ghcr.io/staffops/aigent-squad` (public) is built and published to GHCR by
 the project's CI/CD pipeline (multi-arch: amd64 + arm64), versioned by
 `Chart.appVersion` (don't hardcode a tag). Local development overrides
 `global.image.registry` to a Harbor project (Harbor is used locally only);
@@ -162,7 +162,7 @@ Path per exposed service is `/<service>` by default; override via `routing.paths
 | Key | Default | Description |
 |-----|---------|-------------|
 | `topology` | `inProcess` | `inProcess` or `distributed` (intent flag). |
-| `global.image.registry` | `""` | Empty = Docker Hub as-is (`karlipegomes/aigent-squad`, the CI target). Local dev overrides to a Harbor project (e.g. `harbor.bigdatacorp.com.br/labs`). |
+| `global.image.registry` | `""` | Empty = use `services.*.image.repository` as-is (`ghcr.io/staffops/aigent-squad`, the CI target). Local dev can override to a private registry project. |
 | `global.env` | region/model/env/log | Non-sensitive shared env (12-factor III). |
 | `global.otel.enabled` / `.endpoint` | `true` / collector | OTel export (App→Collector→Backend). |
 | `global.otel.metricsPrometheusScrape` | `true` | Also expose `/metrics` on each service's own port for direct Prometheus/VictoriaMetrics scrape (otel-helper v0.2.0+ runs OTLP push + Prometheus export on the same MeterProvider). Pairs with `serviceMonitor.enabled`. |
@@ -178,6 +178,7 @@ Path per exposed service is `/<service>` by default; override via `routing.paths
 | `routing.type` | `none` | External routing: `none` \| `ingress` \| `gatewayapi`. |
 | `networkPolicy.enabled` | `false` | Specialists accept ingress only from supervisor. |
 | `externalSecrets.enabled` | `false` | Secrets via External Secrets Operator → AWS SM. |
+| `existingSecrets` | `[]` | Names of pre-existing Secrets injected via `envFrom` (no ESO needed). E.g. `OPENAI_API_KEY` for `global.env.LLM_PROVIDER=openai` (app spec 28 — Guardrail L1 is off with non-Bedrock providers). |
 | `librechat.enabled` | `false` | Optional chat UI + in-cluster MongoDB `StatefulSet` (spec 29 bridge). Minimal, non-production — single Mongo pod, no auth. `baseURL` auto-computes to this release's own gateway Service unless set. API key resolves `apiKey` → `apiKeySecretName` → reuse of `externalSecrets.secrets[]` when enabled. |
 
 ## Secrets

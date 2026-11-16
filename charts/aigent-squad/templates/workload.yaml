@@ -109,11 +109,19 @@ spec:
             - name: {{ $k }}
               value: {{ tpl ($v | toString) $root | quote }}
             {{- end }}
+          {{- $esoSecrets := list }}
           {{- if $root.Values.externalSecrets.enabled }}
+          {{- $esoSecrets = $root.Values.externalSecrets.secrets }}
+          {{- end }}
+          {{- if or $esoSecrets $root.Values.existingSecrets }}
           envFrom:
-            {{- range $root.Values.externalSecrets.secrets }}
+            {{- range $esoSecrets }}
             - secretRef:
                 name: {{ .name }}
+            {{- end }}
+            {{- range $root.Values.existingSecrets }}
+            - secretRef:
+                name: {{ . }}
             {{- end }}
           {{- end }}
           {{- with $root.Values.global.probes.liveness }}

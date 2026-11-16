@@ -4,6 +4,44 @@ All notable changes to the `aigent-squad` Helm chart are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow
 [SemVer](https://semver.org/).
 
+## [0.9.6] - 2026-11-15
+
+### Added
+- `existingSecrets: []` — list of pre-existing K8s Secret names injected via
+  `envFrom` into every workload (no External Secrets Operator required).
+  Combines with `externalSecrets` when both are set (ESO secrets first).
+- `values.yaml` documents the app's spec-28 LLM provider settings
+  (`LLM_PROVIDER=openai`, `OPENAI_BASE_URL`, `LLM_MODEL_ID`, optional
+  `LLM_PRICE_*` in `global.env`; `OPENAI_API_KEY` in a Secret) and that the
+  Bedrock Guardrail (L1) is off by design when the provider is not Bedrock.
+
+### Changed
+- `appVersion` `0.4.0` → `0.5.0`. Since the image moved to GHCR
+  (`ghcr.io/staffops/aigent-squad`), the default install resolved to
+  `:0.4.0`, a tag that only ever existed on Docker Hub — GHCR's first release
+  tag is `0.5.0`. The default `values.yaml` now pulls an image that exists.
+
+### Fixed
+- `ci/ct-values.yaml` pointed at a dead private registry
+  (`harbor.bdc.app.br/aigent-squad/supervisor:0.1.0`) — now the public GHCR
+  image at `Chart.appVersion`, with readiness on `/healthz` (the kind CI
+  cluster has no DynamoDB, so the supervisor's `/ready` can never pass there).
+- Gateway `SUPERVISOR_URL` (and the distributed agents' gateway URL) used
+  `{{ .Release.Name }}-supervisor`, but the Service is named via
+  `aigent-squad.fullname` (`<release>-aigent-squad-supervisor` unless the
+  release name contains the chart name) — any other release name left the
+  gateway unable to reach the supervisor. Now rendered with the
+  `aigent-squad.serviceFullname` helper. Found by the first `ct install`.
+- `ci/ct-values.yaml`: in-cluster Redis enabled (the app requires
+  `REDIS_HOST` at startup) and the supervisor uses the image's baked-in
+  agents (the inline test agent had drifted from the app's `AgentConfig`
+  schema).
+- Stale links: `home`/`sources` → `StaffOps/aigent-squad`, NOTES docs link,
+  README image (Docker Hub → public GHCR).
+- `Chart.yaml` maintainer `StaffOps Contributors` → `StaffOps` — `ct lint`
+  validates maintainer names against the GitHub users API and the old value
+  404'd (first PR-based CI run of the repo exposed it).
+
 ## [0.9.5] - 2026-07-16
 
 ### Changed

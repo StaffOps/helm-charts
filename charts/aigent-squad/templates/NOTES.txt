@@ -33,4 +33,4 @@ only the supervisor is needed (it runs all agents from config). Use
 values-distributed.yaml for the per-service topology.
 {{- end }}
 
-Docs: https://github.com/karlipegomes/staffops-aigent-squad/tree/dev/.kiro/specs/05-helm-chart
+Docs: https://staffops.github.io/aigent-squad/  ·  chart: https://github.com/StaffOps/helm-charts/tree/main/charts/aigent-squad

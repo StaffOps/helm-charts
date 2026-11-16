@@ -5,7 +5,16 @@ topology: inProcess
 
 global:
   image:
-    registry: harbor.bdc.app.br
+    registry: ""              # public GHCR image (tag = Chart.appVersion)
+  # CI kind cluster has no DynamoDB/AWS: the supervisor's /ready (which checks
+  # DynamoDB) can never pass there, so CI gates on liveness-level health.
+  probes:
+    readiness:
+      path: /healthz
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 3
   otel:
     enabled: false
   env:
@@ -18,8 +27,7 @@ services:
   gateway:
     enabled: true
     image:
-      repository: aigent-squad/supervisor
-      tag: "0.1.0"
+      repository: ghcr.io/staffops/aigent-squad
     command: ["python", "-m", "src.gateway.main"]
     port: 8000
     mountAgents: false
@@ -44,11 +52,12 @@ services:
   supervisor:
     enabled: true
     image:
-      repository: aigent-squad/supervisor
-      tag: "0.1.0"
+      repository: ghcr.io/staffops/aigent-squad
     command: ["python", "-m", "src.supervisor.server"]
     port: 8001
-    mountAgents: true
+    # Use the agents baked into the image: an inline test agent drifts from the
+    # app's AgentConfig schema (it did — `capabilities` became required).
+    mountAgents: false
     expose: false
     serviceAccount:
       create: true
@@ -70,19 +79,12 @@ services:
 agentsSource:
   type: configmap
 
-agents:
-  - name: test-agent
-    config: |
-      name: test-agent
-      description: Test agent for chart-testing
-      datasources: []
-    prompt: |
-      You are a test agent.
+agents: []
 
 redis:
   host: ""
   inCluster:
-    enabled: false
+    enabled: true             # the app requires REDIS_HOST at startup
 
 externalSecrets:
   enabled: false

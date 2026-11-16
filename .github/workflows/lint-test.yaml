@@ -56,4 +56,6 @@ jobs:
 
       - name: Run chart-testing (install)
         if: steps.list-changed.outputs.changed == 'true'
-        run: ct install --target-branch ${{ github.event.repository.default_branch }}
+        # anomaly-detection images (controller/worker/ml) are not public, so the
+        # GitHub runner cannot pull them; that chart is still covered by ct lint.
+        run: ct install --target-branch ${{ github.event.repository.default_branch }} --excluded-charts anomaly-detection

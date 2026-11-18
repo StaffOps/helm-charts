@@ -8,6 +8,8 @@ metadata:
   description: "helm-charts (StaffOps)"
   annotations:
     github.com/project-slug: StaffOps/helm-charts
+    backstage.io/techdocs-ref: dir:.
+  tags: [helm, kubernetes, mkdocs, github-pages]
   links:
     - url: https://github.com/StaffOps/helm-charts
       title: Repository
@@ -24,7 +26,8 @@ metadata:
   description: "helm-charts (StaffOps)"
   annotations:
     github.com/project-slug: StaffOps/helm-charts
-  tags: [go-template]
+    backstage.io/techdocs-ref: dir:.
+  tags: [helm, kubernetes]
 spec:
   type: library
   lifecycle: production

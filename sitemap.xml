@@ -2,22 +2,26 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://staffops.github.io/helm-charts/</loc>
-         <lastmod>2026-11-15</lastmod>
+         <lastmod>2026-11-23</lastmod>
     </url>
     <url>
          <loc>https://staffops.github.io/helm-charts/contributing/</loc>
-         <lastmod>2026-11-15</lastmod>
+         <lastmod>2026-11-23</lastmod>
+    </url>
+    <url>
+         <loc>https://staffops.github.io/helm-charts/handoff/</loc>
+         <lastmod>2026-11-23</lastmod>
     </url>
     <url>
          <loc>https://staffops.github.io/helm-charts/charts/aigent-squad/</loc>
-         <lastmod>2026-11-15</lastmod>
+         <lastmod>2026-11-23</lastmod>
     </url>
     <url>
          <loc>https://staffops.github.io/helm-charts/charts/anomaly-detection/</loc>
-         <lastmod>2026-11-15</lastmod>
+         <lastmod>2026-11-23</lastmod>
     </url>
     <url>
          <loc>https://staffops.github.io/helm-charts/charts/generic/</loc>
-         <lastmod>2026-11-15</lastmod>
+         <lastmod>2026-11-23</lastmod>
     </url>
 </urlset>

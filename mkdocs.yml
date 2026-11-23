@@ -42,6 +42,7 @@ nav:
       - Anomaly Detection: charts/anomaly-detection.md
       - Generic: charts/generic.md
   - Contributing: contributing.md
+  - Handoff: handoff.md
 
 plugins:
   - search:
